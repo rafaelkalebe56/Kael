@@ -42,10 +42,6 @@ export default function Home() {
               <LogIn aria-hidden="true" /> Acessar painel
             </button>
           </div>
-          <div className="about" id="sobre">
-            <span className="about-icon"><ShieldCheck aria-hidden="true" /></span>
-            <p><strong>Conheça o Kael.</strong> Um bot criado para deixar sua comunidade mais organizada, segura e simples de administrar.</p>
-          </div>
         </div>
 
         <div className="hero-symbols" aria-hidden="true">
@@ -57,6 +53,24 @@ export default function Home() {
         <div className={'kael-art ' + (hasEntered ? 'welcome-wave' : '')} aria-label="Kael acenando para dar boas-vindas">
           <Image src="/kael-wave.png" alt="Kael acenando" fill priority sizes="(max-width: 900px) 90vw, 60vw" />
           {hasEntered && <div className="hello-bubble" role="status">Olá, eu sou o Kael!</div>}
+        </div>
+      </section>
+
+      <section className="about-section" id="sobre" aria-labelledby="about-title">
+        <div className="about-section-copy">
+          <p className="section-eyebrow">SOBRE O KAEL</p>
+          <h2 id="about-title">Um bot para deixar seu servidor <span>mais vivo.</span></h2>
+          <p>Todo servidor tem sua própria personalidade. O Kael foi criado para ajudar sua comunidade a crescer com organização, diversão e menos tarefas repetitivas.</p>
+          <p>Enquanto você cuida das pessoas e dos momentos importantes, ele ajuda a manter tudo funcionando de um jeito simples, bonito e do seu jeito.</p>
+          <div className="about-highlight">
+            <span className="about-highlight-icon"><ShieldCheck aria-hidden="true" /></span>
+            <span>Mais organização para a equipe. Mais tranquilidade para a comunidade.</span>
+          </div>
+        </div>
+
+        <div className="about-section-art" aria-label="Retrato do Kael">
+          <div className="about-art-ring" aria-hidden="true" />
+          <Image src="/kael-avatar.png" alt="Retrato do Kael" width={360} height={360} />
         </div>
       </section>
     </main>
