@@ -4,6 +4,8 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from kael.ui import information_card
+
 
 class StatusCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
@@ -15,14 +17,13 @@ class StatusCog(commands.Cog):
             self.bot.database.ensure_guild(interaction.guild.id)  # type: ignore[attr-defined]
 
         latency = round(self.bot.latency * 1000)
-        embed = discord.Embed(
-            title="Kael está online",
-            description="Pronto para cuidar da sua comunidade.",
-            color=discord.Color.purple(),
+        view = information_card(
+            "Kael está online",
+            "Pronto para cuidar da sua comunidade.\n\n"
+            f"**Latência:** {latency} ms\n"
+            "Kael • Community Hub",
         )
-        embed.add_field(name="Latência", value=f"{latency} ms")
-        embed.set_footer(text="Kael • Community Hub")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(view=view, ephemeral=True)
 
 
 async def setup(bot: commands.Bot) -> None:

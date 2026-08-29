@@ -3,6 +3,11 @@
 Kael é um bot modular para comunidades no Discord. Esta primeira base inclui
 configuração segura, banco separado por servidor e o comando `/status`.
 
+## Padrões de interface
+
+- Mensagens novas usam **Discord Components v2**, não embeds.
+- Emojis serão próprios da marca Kael; não usamos pacotes de emojis prontos.
+
 ## Rodar localmente
 
 1. Crie um ambiente virtual e instale `pip install -r requirements.txt`.
@@ -13,4 +18,3 @@ configuração segura, banco separado por servidor e o comando `/status`.
 Para desenvolver com atualização imediata do comando, preencha também
 `KAEL_DEV_GUILD_ID` com o ID do seu servidor de teste. Nunca envie o token
 em chat nem o inclua no Git.
-
