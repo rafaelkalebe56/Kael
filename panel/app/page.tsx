@@ -18,7 +18,7 @@ export default function Home() {
     <main className="kael-page">
       <header className="kael-nav">
         <a className="brand" href="/inicio" aria-label="Kael - início">
-          <Image src="/kael-avatar.png" alt="Kael" width={44} height={44} priority />
+          <Image src="/kael-avatar.png" alt="Kael" width={44} height={44} priority unoptimized />
           <span>Kael</span>
         </a>
         <nav aria-label="Navegação principal">
@@ -70,7 +70,7 @@ export default function Home() {
 
         <div className="about-section-art" aria-label="Retrato do Kael">
           <div className="about-art-ring" aria-hidden="true" />
-          <Image src="/kael-avatar.png" alt="Retrato do Kael" width={360} height={360} />
+          <Image src="/kael-avatar.png" alt="Retrato do Kael" width={360} height={360} unoptimized />
         </div>
       </section>
     </main>
