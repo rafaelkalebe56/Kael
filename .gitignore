@@ -3,4 +3,10 @@
 __pycache__/
 *.py[cod]
 data/*.sqlite3
-
+.site-source-history/
+panel/node_modules/
+panel/.next/
+panel/.vinext/
+panel/.wrangler/
+panel/dist/
+panel/*.tgz
