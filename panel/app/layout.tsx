@@ -4,6 +4,9 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Kael — Seu novo bot Discord',
   description: 'Kael ajuda você a moderar, organizar e cuidar da sua comunidade Discord.',
+  icons: {
+    icon: '/assets/kael-favicon.svg',
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
