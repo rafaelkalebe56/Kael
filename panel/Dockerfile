@@ -18,6 +18,7 @@ RUN corepack enable && corepack prepare pnpm@11.19.0 --activate
 COPY --from=build --chown=node:node /app/package.json ./
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/dist ./dist
+RUN chown -R node:node /app
 
 USER node
 EXPOSE 8080
