@@ -5,7 +5,10 @@ export const metadata: Metadata = {
   title: 'Kael — Seu novo bot Discord',
   description: 'Kael ajuda você a moderar, organizar e cuidar da sua comunidade Discord.',
   icons: {
-    icon: '/assets/kael-favicon.svg',
+    icon: {
+      url: '/assets/kael-favicon-portrait.png',
+      type: 'image/png',
+    },
   },
 };
 
