@@ -1,0 +1,2 @@
+"""Kael Discord bot."""
+
