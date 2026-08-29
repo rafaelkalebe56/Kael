@@ -12,6 +12,22 @@ export default function Home() {
       window.sessionStorage.setItem('kael-welcome-seen', 'true');
       setHasEntered(true);
     }
+
+    const blockContextMenu = (event: MouseEvent) => event.preventDefault();
+    const blockCopy = (event: ClipboardEvent) => event.preventDefault();
+    const blockDrag = (event: DragEvent) => event.preventDefault();
+
+    document.addEventListener('contextmenu', blockContextMenu);
+    document.addEventListener('copy', blockCopy);
+    document.addEventListener('cut', blockCopy);
+    document.addEventListener('dragstart', blockDrag);
+
+    return () => {
+      document.removeEventListener('contextmenu', blockContextMenu);
+      document.removeEventListener('copy', blockCopy);
+      document.removeEventListener('cut', blockCopy);
+      document.removeEventListener('dragstart', blockDrag);
+    };
   }, []);
 
   return (

@@ -4,6 +4,8 @@
 * { box-sizing:border-box; }
 html { background:#070a17; scroll-behavior:smooth; }
 body { margin:0; background:#070a17; color:var(--ink); font-family:Arial,Helvetica,sans-serif; }
+.kael-page, .kael-page * { user-select:none; -webkit-user-select:none; }
+img { -webkit-user-drag:none; user-drag:none; }
 button,a { font:inherit; } button { cursor:pointer; }
 .kael-page { position:relative; min-height:100svh; overflow:hidden; background:radial-gradient(circle at 79% 42%,#16275d 0%,#0b1128 24%,#070a17 56%); }
 .kael-page::before { content:''; position:absolute; inset:0; pointer-events:none; opacity:.58; background:radial-gradient(ellipse at 32% 105%,rgba(68,77,255,.16),transparent 35%); }
