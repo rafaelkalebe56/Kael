@@ -1,10 +1,12 @@
 'use client';
 
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import { ArrowRight, LogIn, Plus, ShieldCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 export default function Home() {
+  const pathname = usePathname();
   const [hasEntered, setHasEntered] = useState(false);
 
   useEffect(() => {
@@ -17,14 +19,14 @@ export default function Home() {
   return (
     <main className="kael-page">
       <header className="kael-nav">
-        <a className="brand" href="#inicio" aria-label="Kael - início">
+        <a className="brand" href="/inicio" aria-label="Kael - início">
           <Image src="/kael-avatar.png" alt="Kael" width={44} height={44} priority />
           <span>Kael</span>
         </a>
         <nav aria-label="Navegação principal">
-          <a className="active" href="#inicio">Início</a>
-          <a href="#sobre">Sobre</a>
-          <a href="#suporte">Suporte</a>
+          <a className={pathname === '/sobre' ? '' : 'active'} href="/inicio">Início</a>
+          <a className={pathname === '/sobre' ? 'active' : ''} href="/sobre">Sobre</a>
+          <a href="/suporte">Suporte</a>
         </nav>
         <button className="nav-action" type="button">
           <Plus aria-hidden="true" /> Adicionar ao servidor
@@ -61,9 +63,6 @@ export default function Home() {
           {hasEntered && <div className="hello-bubble" role="status">Olá, eu sou o Kael!</div>}
         </div>
       </section>
-      <p className="security-note" id="suporte">
-        O acesso ao painel será feito pelo Discord e cada servidor só poderá ser gerenciado por quem tiver permissão.
-      </p>
     </main>
   );
 }
