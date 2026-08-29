@@ -34,7 +34,7 @@ export default function Home() {
     <main className="kael-page">
       <header className="kael-nav">
         <a className="brand" href="/inicio" aria-label="Kael - início">
-          <Image src="/kael-avatar.png" alt="Kael" width={44} height={44} priority unoptimized />
+          <Image src="/kael-avatar.png" alt="Kael" width={44} height={44} priority unoptimized draggable={false} />
           <span>Kael</span>
         </a>
         <nav aria-label="Navegação principal">
@@ -67,7 +67,7 @@ export default function Home() {
           <span className="symbol dash">−</span>
         </div>
         <div className={'kael-art ' + (hasEntered ? 'welcome-wave' : '')} aria-label="Kael acenando para dar boas-vindas">
-          <Image src="/kael-wave.png" alt="Kael acenando" fill priority sizes="(max-width: 900px) 90vw, 60vw" />
+          <Image src="/kael-wave.png" alt="Kael acenando" fill priority sizes="(max-width: 900px) 90vw, 60vw" draggable={false} />
           {hasEntered && <div className="hello-bubble" role="status">Olá, eu sou o Kael!</div>}
         </div>
       </section>
@@ -86,7 +86,7 @@ export default function Home() {
 
         <div className="about-section-art" aria-label="Retrato do Kael">
           <div className="about-art-ring" aria-hidden="true" />
-          <Image src="/kael-avatar.png" alt="Retrato do Kael" width={360} height={360} unoptimized />
+          <Image src="/kael-avatar.png" alt="Retrato do Kael" width={360} height={360} unoptimized draggable={false} />
         </div>
       </section>
     </main>
