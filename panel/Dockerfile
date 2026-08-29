@@ -22,4 +22,4 @@ RUN chown -R node:node /app
 
 USER node
 EXPOSE 8080
-CMD ["sh", "-c", "pnpm exec wrangler dev --local --config dist/server/wrangler.json --ip 0.0.0.0 --port ${PORT:-8080}"]
+CMD ["sh", "-c", "node node_modules/wrangler/bin/wrangler.js dev --local --config dist/server/wrangler.json --ip 0.0.0.0 --port ${PORT:-8080}"]
