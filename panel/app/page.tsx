@@ -1,12 +1,10 @@
 'use client';
 
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
 import { ArrowRight, LogIn, Plus, ShieldCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 export default function Home() {
-  const pathname = usePathname();
   const [hasEntered, setHasEntered] = useState(false);
 
   useEffect(() => {
@@ -24,9 +22,7 @@ export default function Home() {
           <span>Kael</span>
         </a>
         <nav aria-label="Navegação principal">
-          <a className={pathname === '/sobre' ? '' : 'active'} href="/inicio">Início</a>
-          <a className={pathname === '/sobre' ? 'active' : ''} href="/sobre">Sobre</a>
-          <a href="/suporte">Suporte</a>
+          <a className="active" href="/inicio">Início</a>
         </nav>
         <button className="nav-action" type="button">
           <Plus aria-hidden="true" /> Adicionar ao servidor
@@ -48,7 +44,7 @@ export default function Home() {
           </div>
           <div className="about" id="sobre">
             <span className="about-icon"><ShieldCheck aria-hidden="true" /></span>
-            <p><strong>Feito para comunidades.</strong> Menos confusão, mais tempo para o seu servidor.</p>
+            <p><strong>Conheça o Kael.</strong> Um bot criado para deixar sua comunidade mais organizada, segura e simples de administrar.</p>
           </div>
         </div>
 
