@@ -40,9 +40,9 @@ export default function Home() {
         <nav aria-label="Navegação principal">
           <a className="active" href="/inicio">Início</a>
         </nav>
-        <button className="nav-action" type="button">
+        <a className="nav-action" href="/api/discord/invite">
           <Plus aria-hidden="true" /> Adicionar ao servidor
-        </button>
+        </a>
       </header>
 
       <section className="hero" id="inicio" aria-labelledby="hero-title">
@@ -51,12 +51,12 @@ export default function Home() {
           <h1 id="hero-title">Sua comunidade,<br /><span>mais simples.</span></h1>
           <p className="hero-description">Kael ajuda você a moderar, organizar e cuidar do seu servidor Discord.</p>
           <div className="actions">
-            <button className="primary-action" type="button">
+            <a className="primary-action" href="/api/discord/invite">
               Adicionar Kael ao servidor <ArrowRight aria-hidden="true" />
-            </button>
-            <button className="secondary-action" type="button">
+            </a>
+            <a className="secondary-action" href="/api/auth/discord">
               <LogIn aria-hidden="true" /> Acessar painel
-            </button>
+            </a>
           </div>
         </div>
 

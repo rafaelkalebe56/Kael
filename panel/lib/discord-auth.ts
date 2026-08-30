@@ -1,0 +1,256 @@
+const DISCORD_API = 'https://discord.com/api/v10';
+const SESSION_COOKIE = 'kael_discord_session';
+const STATE_COOKIE = 'kael_oauth_state';
+
+export type DiscordGuild = {
+  id: string;
+  name: string;
+  icon: string | null;
+};
+
+type DiscordSession = {
+  accessToken: string;
+  expiresAt: number;
+};
+
+type DiscordPublicConfiguration = {
+  clientId: string;
+  publicUrl: URL;
+};
+
+type DiscordOAuthConfiguration = DiscordPublicConfiguration & {
+  clientSecret: string;
+  sessionSecret: string;
+};
+
+function trimTrailingSlash(value: string) {
+  return value.replace(/\/+$/, '');
+}
+
+function getPublicConfiguration(): DiscordPublicConfiguration | null {
+  const clientId = process.env.DISCORD_CLIENT_ID?.trim();
+  const rawPublicUrl = process.env.PUBLIC_URL?.trim();
+
+  if (!clientId || !rawPublicUrl) return null;
+
+  try {
+    const publicUrl = new URL(trimTrailingSlash(rawPublicUrl));
+    const isLocalhost = publicUrl.hostname === 'localhost' || publicUrl.hostname === '127.0.0.1';
+    if (publicUrl.protocol !== 'https:' && !isLocalhost) return null;
+    return { clientId, publicUrl };
+  } catch {
+    return null;
+  }
+}
+
+function getOAuthConfiguration(): DiscordOAuthConfiguration | null {
+  const publicConfiguration = getPublicConfiguration();
+  const clientSecret = process.env.DISCORD_CLIENT_SECRET?.trim();
+  const sessionSecret = process.env.SESSION_SECRET?.trim();
+
+  if (!publicConfiguration || !clientSecret || !sessionSecret || sessionSecret.length < 32) {
+    return null;
+  }
+
+  return { ...publicConfiguration, clientSecret, sessionSecret };
+}
+
+function base64UrlEncode(bytes: Uint8Array) {
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function base64UrlDecode(value: string) {
+  const padded = value.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (value.length % 4)) % 4);
+  const binary = atob(padded);
+  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+}
+
+function secureRandomToken() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return base64UrlEncode(bytes);
+}
+
+function readCookie(cookieHeader: string | null, name: string) {
+  if (!cookieHeader) return null;
+  const prefix = `${name}=`;
+  for (const item of cookieHeader.split(';')) {
+    const trimmed = item.trim();
+    if (trimmed.startsWith(prefix)) return decodeURIComponent(trimmed.slice(prefix.length));
+  }
+  return null;
+}
+
+function cookie(name: string, value: string, maxAge: number, secure: boolean) {
+  return [
+    `${name}=${encodeURIComponent(value)}`,
+    'Path=/',
+    'HttpOnly',
+    'SameSite=Lax',
+    secure ? 'Secure' : '',
+    `Max-Age=${maxAge}`,
+  ].filter(Boolean).join('; ');
+}
+
+function isSecureCookie(publicUrl: URL) {
+  return publicUrl.protocol === 'https:';
+}
+
+async function sessionKey(secret: string) {
+  const bytes = new TextEncoder().encode(secret);
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return crypto.subtle.importKey('raw', digest, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+}
+
+async function encryptSession(session: DiscordSession, secret: string) {
+  const iv = new Uint8Array(12);
+  crypto.getRandomValues(iv);
+  const plaintext = new TextEncoder().encode(JSON.stringify(session));
+  const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await sessionKey(secret), plaintext);
+  return `v1.${base64UrlEncode(iv)}.${base64UrlEncode(new Uint8Array(encrypted))}`;
+}
+
+async function decryptSession(value: string, secret: string): Promise<DiscordSession | null> {
+  const [version, ivEncoded, ciphertextEncoded] = value.split('.');
+  if (version !== 'v1' || !ivEncoded || !ciphertextEncoded) return null;
+
+  try {
+    const plaintext = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: base64UrlDecode(ivEncoded) },
+      await sessionKey(secret),
+      base64UrlDecode(ciphertextEncoded),
+    );
+    const parsed = JSON.parse(new TextDecoder().decode(plaintext)) as DiscordSession;
+    if (typeof parsed.accessToken !== 'string' || typeof parsed.expiresAt !== 'number' || parsed.expiresAt <= Date.now()) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function callbackUrl(configuration: DiscordPublicConfiguration) {
+  return new URL('/api/auth/discord/callback', configuration.publicUrl).toString();
+}
+
+function redirectWithCookies(location: URL | string, cookies: string[]) {
+  const response = Response.redirect(location, 302);
+  for (const setCookie of cookies) response.headers.append('Set-Cookie', setCookie);
+  response.headers.set('Cache-Control', 'no-store');
+  return response;
+}
+
+export function beginDiscordLogin(request: Request) {
+  const configuration = getOAuthConfiguration();
+  if (!configuration) {
+    return Response.redirect(new URL('/inicio?erro=integracao', request.url), 302);
+  }
+
+  const state = secureRandomToken();
+  const authorization = new URL('https://discord.com/oauth2/authorize');
+  authorization.searchParams.set('client_id', configuration.clientId);
+  authorization.searchParams.set('redirect_uri', callbackUrl(configuration));
+  authorization.searchParams.set('response_type', 'code');
+  authorization.searchParams.set('scope', 'identify guilds');
+  authorization.searchParams.set('state', state);
+
+  return redirectWithCookies(authorization, [
+    cookie(STATE_COOKIE, state, 10 * 60, isSecureCookie(configuration.publicUrl)),
+  ]);
+}
+
+export async function finishDiscordLogin(request: Request) {
+  const configuration = getOAuthConfiguration();
+  if (!configuration) return Response.redirect(new URL('/inicio?erro=integracao', request.url), 302);
+
+  const url = new URL(request.url);
+  const state = url.searchParams.get('state');
+  const expectedState = readCookie(request.headers.get('Cookie'), STATE_COOKIE);
+  const clearState = cookie(STATE_COOKIE, '', 0, isSecureCookie(configuration.publicUrl));
+  const restart = new URL('/inicio?erro=login', configuration.publicUrl);
+
+  if (!state || !expectedState || state !== expectedState || url.searchParams.get('error')) {
+    return redirectWithCookies(restart, [clearState]);
+  }
+
+  const form = new URLSearchParams({
+    client_id: configuration.clientId,
+    client_secret: configuration.clientSecret,
+    grant_type: 'authorization_code',
+    code: url.searchParams.get('code') ?? '',
+    redirect_uri: callbackUrl(configuration),
+  });
+
+  try {
+    const tokenResponse = await fetch(`${DISCORD_API}/oauth2/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: form,
+    });
+    const token = await tokenResponse.json() as { access_token?: string; expires_in?: number };
+    if (!tokenResponse.ok || !token.access_token || !token.expires_in) throw new Error('Discord OAuth token failed');
+
+    const encryptedSession = await encryptSession({
+      accessToken: token.access_token,
+      expiresAt: Date.now() + token.expires_in * 1000,
+    }, configuration.sessionSecret);
+
+    return redirectWithCookies(new URL('/servidores', configuration.publicUrl), [
+      clearState,
+      cookie(SESSION_COOKIE, encryptedSession, Math.max(60, Math.floor(token.expires_in)), isSecureCookie(configuration.publicUrl)),
+    ]);
+  } catch {
+    return redirectWithCookies(restart, [clearState]);
+  }
+}
+
+export function beginBotInvite(request: Request) {
+  const configuration = getPublicConfiguration();
+  if (!configuration) return Response.redirect(new URL('/inicio?erro=integracao', request.url), 302);
+
+  const invite = new URL('https://discord.com/oauth2/authorize');
+  invite.searchParams.set('client_id', configuration.clientId);
+  invite.searchParams.set('scope', 'bot applications.commands');
+  invite.searchParams.set('permissions', '0');
+  return Response.redirect(invite, 302);
+}
+
+export async function getDiscordSession(request: Request) {
+  const configuration = getOAuthConfiguration();
+  const encryptedSession = readCookie(request.headers.get('Cookie'), SESSION_COOKIE);
+  if (!configuration || !encryptedSession) return null;
+  return decryptSession(encryptedSession, configuration.sessionSecret);
+}
+
+export async function managedGuilds(request: Request): Promise<DiscordGuild[] | null> {
+  const session = await getDiscordSession(request);
+  if (!session) return null;
+
+  const response = await fetch(`${DISCORD_API}/users/@me/guilds`, {
+    headers: { Authorization: `Bearer ${session.accessToken}` },
+  });
+  if (!response.ok) return null;
+
+  const guilds = await response.json() as Array<{ id: string; name: string; icon: string | null; owner?: boolean; permissions?: string }>;
+  const manageGuild = BigInt(32);
+  return guilds
+    .filter((guild) => {
+      if (guild.owner) return true;
+      try {
+        return Boolean(BigInt(guild.permissions ?? '0') & manageGuild);
+      } catch {
+        return false;
+      }
+    })
+    .map(({ id, name, icon }) => ({ id, name, icon }));
+}
+
+export function clearDiscordSession(request: Request) {
+  const configuration = getPublicConfiguration();
+  const destination = new URL('/inicio', request.url);
+  if (!configuration) return Response.redirect(destination, 302);
+  return redirectWithCookies(destination, [cookie(SESSION_COOKIE, '', 0, isSecureCookie(configuration.publicUrl))]);
+}
