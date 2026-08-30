@@ -137,10 +137,15 @@ function callbackUrl(configuration: DiscordPublicConfiguration) {
 }
 
 function redirectWithCookies(location: URL | string, cookies: string[]) {
-  const response = Response.redirect(location, 302);
-  for (const setCookie of cookies) response.headers.append('Set-Cookie', setCookie);
-  response.headers.set('Cache-Control', 'no-store');
-  return response;
+  // Responses criadas com Response.redirect() podem ter os headers imutáveis
+  // no runtime Workers. Criamos a resposta manualmente para anexar o cookie
+  // HttpOnly da sessão antes de devolvê-la ao navegador.
+  const headers = new Headers({
+    Location: location.toString(),
+    'Cache-Control': 'no-store',
+  });
+  for (const setCookie of cookies) headers.append('Set-Cookie', setCookie);
+  return new Response(null, { status: 302, headers });
 }
 
 export function beginDiscordLogin(request: Request) {
