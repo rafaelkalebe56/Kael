@@ -3,6 +3,13 @@
 Kael é um bot modular para comunidades no Discord. Esta primeira base inclui
 configuração segura, banco separado por servidor e o comando `/status`.
 
+## Dados persistentes
+
+O Kael usa SQLite, com uma configuração isolada para cada servidor. Na
+Railway, ele detecta automaticamente o Volume montado em `/data` e salva o
+banco em `/data/kael.sqlite3`. Localmente, o arquivo fica em `data/` e não é
+enviado ao Git. Caso precise usar outro local, defina `KAEL_DATA_DIR`.
+
 ## Padrões de interface
 
 - Mensagens novas usam **Discord Components v2**, não embeds.

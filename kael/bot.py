@@ -30,6 +30,8 @@ class KaelBot(commands.Bot):
             await self.tree.sync()
 
     async def on_ready(self) -> None:
+        for guild in self.guilds:
+            self.database.ensure_guild(guild.id)
         logging.getLogger(__name__).info("Kael conectado como %s", self.user)
 
     async def on_guild_join(self, guild: discord.Guild) -> None:
@@ -38,4 +40,3 @@ class KaelBot(commands.Bot):
     async def close(self) -> None:
         self.database.close()
         await super().close()
-
