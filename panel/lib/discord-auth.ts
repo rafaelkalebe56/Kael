@@ -178,6 +178,13 @@ export async function finishDiscordLogin(request: Request) {
   const restart = new URL('/inicio?erro=login', configuration.publicUrl);
 
   if (!state || !expectedState || state !== expectedState || url.searchParams.get('error')) {
+    console.warn('Discord OAuth callback recusado', {
+      hasCode: Boolean(url.searchParams.get('code')),
+      hasState: Boolean(state),
+      hasStateCookie: Boolean(expectedState),
+      stateMatches: Boolean(state && expectedState && state === expectedState),
+      discordError: url.searchParams.get('error'),
+    });
     return redirectWithCookies(restart, [clearState]);
   }
 
@@ -195,8 +202,15 @@ export async function finishDiscordLogin(request: Request) {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: form,
     });
-    const token = await tokenResponse.json() as { access_token?: string; expires_in?: number };
-    if (!tokenResponse.ok || !token.access_token || !token.expires_in) throw new Error('Discord OAuth token failed');
+    const token = await tokenResponse.json() as { access_token?: string; expires_in?: number; error?: string; error_description?: string };
+    if (!tokenResponse.ok || !token.access_token || !token.expires_in) {
+      console.error('Discord recusou a troca do código de login', {
+        status: tokenResponse.status,
+        error: token.error,
+        description: token.error_description,
+      });
+      throw new Error('Discord OAuth token failed');
+    }
 
     const encryptedSession = await encryptSession({
       accessToken: token.access_token,
@@ -207,7 +221,10 @@ export async function finishDiscordLogin(request: Request) {
       clearState,
       cookie(SESSION_COOKIE, encryptedSession, Math.max(60, Math.floor(token.expires_in)), isSecureCookie(configuration.publicUrl)),
     ]);
-  } catch {
+  } catch (error) {
+    console.error('Falha ao finalizar login Discord', {
+      message: error instanceof Error ? error.message : 'erro desconhecido',
+    });
     return redirectWithCookies(restart, [clearState]);
   }
 }
