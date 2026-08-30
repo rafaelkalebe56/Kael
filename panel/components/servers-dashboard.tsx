@@ -56,8 +56,8 @@ export function ServersDashboard() {
     return (
       <div className="panel-empty">
         <span className="panel-empty-icon"><Server aria-hidden="true" /></span>
-        <h2>Nenhum servidor para mostrar</h2>
-        <p>Quando você tiver permissão para gerenciar um servidor, ele aparecerá aqui.</p>
+        <h2>Nenhum servidor com Kael por aqui</h2>
+        <p>O Kael só aparece quando ele está instalado e você tem permissão para gerenciar a comunidade.</p>
       </div>
     );
   }

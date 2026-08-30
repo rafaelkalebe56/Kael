@@ -12,6 +12,12 @@ export type DiscordGuild = {
 type DiscordSession = {
   accessToken: string;
   expiresAt: number;
+  profile: DiscordProfile | null;
+};
+
+export type DiscordProfile = {
+  displayName: string;
+  avatarUrl: string | null;
 };
 
 type DiscordPublicConfiguration = {
@@ -146,7 +152,30 @@ async function decryptSession(value: string, secret: string): Promise<DiscordSes
     if (typeof parsed.accessToken !== 'string' || typeof parsed.expiresAt !== 'number' || parsed.expiresAt <= Date.now()) {
       return null;
     }
-    return parsed;
+    return {
+      accessToken: parsed.accessToken,
+      expiresAt: parsed.expiresAt,
+      profile: parsed.profile && typeof parsed.profile.displayName === 'string'
+        ? { displayName: parsed.profile.displayName, avatarUrl: typeof parsed.profile.avatarUrl === 'string' ? parsed.profile.avatarUrl : null }
+        : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function fetchDiscordProfile(accessToken: string): Promise<DiscordProfile | null> {
+  try {
+    const response = await fetch(`${DISCORD_API}/users/@me`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!response.ok) return null;
+    const user = await response.json() as { id?: string; username?: string; global_name?: string | null; avatar?: string | null };
+    if (!user.id || !user.username) return null;
+    return {
+      displayName: user.global_name || user.username,
+      avatarUrl: user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128` : null,
+    };
   } catch {
     return null;
   }
@@ -235,6 +264,7 @@ export async function finishDiscordLogin(request: Request) {
     const encryptedSession = await encryptSession({
       accessToken: token.access_token,
       expiresAt: Date.now() + token.expires_in * 1000,
+      profile: await fetchDiscordProfile(token.access_token),
     }, configuration.sessionSecret);
 
     return redirectWithCookies(new URL('/servidores', configuration.publicUrl), [
@@ -267,6 +297,12 @@ export async function getDiscordSession(request: Request) {
   return decryptSession(encryptedSession, configuration.sessionSecret);
 }
 
+export async function getDiscordProfile(request: Request) {
+  const session = await getDiscordSession(request);
+  if (!session) return null;
+  return session.profile ?? fetchDiscordProfile(session.accessToken);
+}
+
 export async function managedGuilds(request: Request): Promise<DiscordGuild[] | null> {
   const session = await getDiscordSession(request);
   if (!session) return null;
@@ -276,13 +312,13 @@ export async function managedGuilds(request: Request): Promise<DiscordGuild[] | 
   });
   if (!response.ok) return null;
 
-  const guilds = await response.json() as Array<{ id: string; name: string; icon: string | null; owner?: boolean; permissions?: string }>;
+  const guilds = await response.json() as Array<{ id: string; name: string; icon: string | null; owner?: boolean; permissions?: string; permissions_new?: string }>;
   const manageGuild = BigInt(32);
   return guilds
     .filter((guild) => {
       if (guild.owner) return true;
       try {
-        return Boolean(BigInt(guild.permissions ?? '0') & manageGuild);
+        return Boolean(BigInt(guild.permissions ?? guild.permissions_new ?? '0') & manageGuild);
       } catch {
         return false;
       }
@@ -292,18 +328,24 @@ export async function managedGuilds(request: Request): Promise<DiscordGuild[] | 
 
 async function kaelGuilds(): Promise<DiscordGuild[] | null> {
   const configuration = getBotConfiguration();
-  if (!configuration) return null;
+  if (!configuration) {
+    console.error('PainelKael: BOT_API_URL ou BOT_API_KEY não foi configurada.');
+    return null;
+  }
 
   try {
     const response = await fetch(new URL('/internal/guilds', configuration.baseUrl), {
       headers: { Authorization: `Bearer ${configuration.apiKey}` },
       redirect: 'error',
     });
-    if (!response.ok) return null;
+    if (!response.ok) {
+      console.error('PainelKael: API privada do Kael recusou a consulta.', { status: response.status });
+      return null;
+    }
     const payload = await response.json() as { guilds?: unknown };
     if (!Array.isArray(payload.guilds)) return null;
 
-    return payload.guilds.flatMap((guild) => {
+    const guilds = payload.guilds.flatMap((guild) => {
       if (!guild || typeof guild !== 'object') return [];
       const value = guild as Record<string, unknown>;
       if (typeof value.id !== 'string' || typeof value.name !== 'string') return [];
@@ -314,7 +356,12 @@ async function kaelGuilds(): Promise<DiscordGuild[] | null> {
         banner: typeof value.banner === 'string' ? value.banner : null,
       }];
     });
-  } catch {
+    console.info('PainelKael: servidores recebidos do Kael.', { count: guilds.length });
+    return guilds;
+  } catch (error) {
+    console.error('PainelKael: não foi possível alcançar a API privada do Kael.', {
+      message: error instanceof Error ? error.message : 'erro desconhecido',
+    });
     return null;
   }
 }
@@ -327,7 +374,13 @@ export async function dashboardGuilds(request: Request): Promise<DiscordGuild[] 
   if (!botGuilds) return undefined;
 
   const manageableGuildIds = new Set(userGuilds.map((guild) => guild.id));
-  return botGuilds.filter((guild) => manageableGuildIds.has(guild.id));
+  const guilds = botGuilds.filter((guild) => manageableGuildIds.has(guild.id));
+  console.info('PainelKael: servidores filtrados.', {
+    botGuilds: botGuilds.length,
+    manageableGuilds: userGuilds.length,
+    shownGuilds: guilds.length,
+  });
+  return guilds;
 }
 
 export function clearDiscordSession(request: Request) {

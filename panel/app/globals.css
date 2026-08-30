@@ -146,3 +146,21 @@ h1 span { color:#5b60ff; }
 .server-card:hover .server-manage svg { transform:translateX(3px); }
 @media (max-width:920px) { .dashboard-page { grid-template-columns:1fr; } .dashboard-sidebar { min-height:0; flex-direction:row; align-items:center; justify-content:space-between; padding:17px max(1.5rem,4vw); border-right:0; border-bottom:1px solid rgba(150,158,255,.11); } .dashboard-menu { display:none; } .dashboard-account { display:none; } .dashboard-main { padding:0 min(6vw,48px) 64px; } .dashboard-welcome { margin-top:53px; } }
 @media (max-width:640px) { .dashboard-brand { padding:0; font-size:21px; } .dashboard-main { padding:0 1.25rem 50px; } .dashboard-top { height:70px; } .dashboard-welcome { margin:42px 0 32px; } .dashboard-welcome h1 { font-size:43px; } .server-grid { grid-template-columns:1fr; gap:15px; } .server-banner { height:112px; } .server-card-body { padding:15px; } .server-manage { font-size:0; } .server-manage svg { width:18px; } }
+
+/* O painel usa cantos sutis e retos, em vez de caixas muito arredondadas. */
+.dashboard-menu-item,.dashboard-account,.dashboard-account > span { border-radius:7px; }
+.server-card { border-radius:8px; }
+.server-banner { border-radius:7px 7px 0 0; }
+.server-banner-fallback { border-radius:8px; }
+.server-icon { border-radius:9px; }
+.dashboard-profile { display:grid; grid-template-columns:36px auto 30px; align-items:center; gap:9px; min-height:46px; padding:5px 6px; border:1px solid rgba(142,151,241,.15); border-radius:7px; background:rgba(20,25,58,.54); }
+.dashboard-profile-avatar { display:grid; width:36px; height:36px; place-items:center; overflow:hidden; border-radius:7px; color:#b3b8ff; background:linear-gradient(145deg,#4a53c8,#2a2f75); }
+.dashboard-profile-avatar img { width:100%; height:100%; object-fit:cover; }
+.dashboard-profile-avatar svg { width:18px; }
+.dashboard-profile-copy { display:flex; min-width:0; flex-direction:column; gap:2px; }
+.dashboard-profile-copy strong { overflow:hidden; max-width:130px; color:#eef0ff; font-size:12px; text-overflow:ellipsis; white-space:nowrap; }
+.dashboard-profile-copy small { color:#949bc5; font-size:10px; }
+.dashboard-profile > a { display:grid; width:30px; height:30px; place-items:center; border-radius:6px; color:#9098c3; }
+.dashboard-profile > a:hover { color:#fff; background:rgba(116,119,238,.18); }
+.dashboard-profile > a svg { width:15px; }
+@media (max-width:640px) { .dashboard-profile { grid-template-columns:34px 30px; gap:4px; padding:3px; border:0; background:transparent; } .dashboard-profile-avatar { width:34px; height:34px; } .dashboard-profile-copy { display:none; } }

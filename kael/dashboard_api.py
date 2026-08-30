@@ -52,4 +52,5 @@ class DashboardApi:
                 }
             )
 
+        logging.getLogger(__name__).info("PainelKael consultou %s servidores do Kael", len(guilds))
         return web.json_response({"guilds": sorted(guilds, key=lambda guild: guild["name"].lower())})
