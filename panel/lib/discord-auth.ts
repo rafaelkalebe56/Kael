@@ -406,7 +406,9 @@ async function kaelGuilds(): Promise<DiscordGuild[] | null> {
   try {
     const response = await fetch(new URL('/internal/guilds', configuration.baseUrl), {
       headers: { Authorization: `Bearer ${configuration.apiKey}` },
-      redirect: 'error',
+      // Workers/edge não implementa `redirect: 'error'`. `manual` mantém a
+      // chamada sem seguir redirecionamentos; qualquer 3xx é recusado abaixo.
+      redirect: 'manual',
     });
     if (!response.ok) {
       console.error('PainelKael: API privada do Kael recusou a consulta.', { status: response.status });
