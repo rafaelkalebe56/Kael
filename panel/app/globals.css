@@ -113,11 +113,6 @@ h1 span { color:#5b60ff; }
 .dashboard-menu-item svg { width:18px; }
 .dashboard-menu-item:hover { color:#e6e8ff; background:rgba(72,80,180,.12); }
 .dashboard-menu-item.active { border-color:rgba(109,101,255,.25); color:#fff; background:linear-gradient(100deg,rgba(100,87,255,.26),rgba(68,72,203,.09)); box-shadow:inset 3px 0 #6c60ff; }
-.dashboard-account { display:grid; grid-template-columns:32px 1fr 18px; align-items:center; gap:10px; padding:11px 9px; border:1px solid rgba(132,141,222,.14); border-radius:13px; color:#bdc2e4; text-decoration:none; }
-.dashboard-account > span { display:grid; width:32px; height:32px; place-items:center; border-radius:10px; color:#a7adff; background:rgba(91,92,209,.17); }
-.dashboard-account span svg { width:16px; }
-.dashboard-account small { color:#aeb4d8; font-size:12px; font-weight:650; }
-.dashboard-account > svg { width:15px; color:#8088b2; }
 .dashboard-main { position:relative; min-width:0; padding:0 clamp(2rem,5vw,76px) 80px; overflow:hidden; background:radial-gradient(ellipse at 75% 3%,rgba(68,77,206,.18),transparent 34%),#080b19; }
 .dashboard-main::before { position:absolute; top:-60px; right:4%; width:360px; height:360px; border:1px solid rgba(100,113,255,.1); border-radius:50%; content:''; pointer-events:none; }
 .dashboard-top { display:flex; align-items:center; justify-content:space-between; height:94px; border-bottom:1px solid rgba(141,149,231,.1); }
@@ -144,11 +139,11 @@ h1 span { color:#5b60ff; }
 .server-manage { display:inline-flex; align-items:center; gap:7px; color:#dfe1ff; font-size:13px; font-weight:700; white-space:nowrap; }
 .server-manage svg { width:16px; color:#9398ff; transition:transform .2s ease; }
 .server-card:hover .server-manage svg { transform:translateX(3px); }
-@media (max-width:920px) { .dashboard-page { grid-template-columns:1fr; } .dashboard-sidebar { min-height:0; flex-direction:row; align-items:center; justify-content:space-between; padding:17px max(1.5rem,4vw); border-right:0; border-bottom:1px solid rgba(150,158,255,.11); } .dashboard-menu { display:none; } .dashboard-account { display:none; } .dashboard-main { padding:0 min(6vw,48px) 64px; } .dashboard-welcome { margin-top:53px; } }
+@media (max-width:920px) { .dashboard-page { grid-template-columns:1fr; } .dashboard-sidebar { min-height:0; flex-direction:row; align-items:center; justify-content:space-between; padding:17px max(1.5rem,4vw); border-right:0; border-bottom:1px solid rgba(150,158,255,.11); } .dashboard-menu { display:none; } .dashboard-main { padding:0 min(6vw,48px) 64px; } .dashboard-welcome { margin-top:53px; } }
 @media (max-width:640px) { .dashboard-brand { padding:0; font-size:21px; } .dashboard-main { padding:0 1.25rem 50px; } .dashboard-top { height:70px; } .dashboard-welcome { margin:42px 0 32px; } .dashboard-welcome h1 { font-size:43px; } .server-grid { grid-template-columns:1fr; gap:15px; } .server-banner { height:112px; } .server-card-body { padding:15px; } .server-manage { font-size:0; } .server-manage svg { width:18px; } }
 
 /* O painel usa cantos sutis e retos, em vez de caixas muito arredondadas. */
-.dashboard-menu-item,.dashboard-account,.dashboard-account > span { border-radius:7px; }
+.dashboard-menu-item { border-radius:7px; }
 .server-card { border-radius:8px; }
 .server-banner { border-radius:7px 7px 0 0; }
 .server-banner-fallback { border-radius:8px; }

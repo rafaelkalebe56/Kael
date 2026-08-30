@@ -1,6 +1,6 @@
 import { ServersDashboard } from '@/components/servers-dashboard';
 import { DashboardProfile } from '@/components/dashboard-profile';
-import { CircleHelp, LayoutGrid, LogOut, Settings2 } from 'lucide-react';
+import { CircleHelp, LayoutGrid } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +13,6 @@ export default function ServersPage() {
           <a className="dashboard-menu-item active" href="/servidores"><LayoutGrid aria-hidden="true" /> Meus servidores</a>
           <a className="dashboard-menu-item" href="/inicio#sobre"><CircleHelp aria-hidden="true" /> Sobre o Kael</a>
         </nav>
-        <a className="dashboard-account" href="/api/auth/logout"><span><Settings2 aria-hidden="true" /></span><small>Sessão Discord</small><LogOut aria-label="Sair" /></a>
       </aside>
       <section className="dashboard-main" aria-labelledby="servers-title">
         <header className="dashboard-top"><p>PAINEL K A E L</p><DashboardProfile /></header>

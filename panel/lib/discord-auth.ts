@@ -1,6 +1,8 @@
 const DISCORD_API = 'https://discord.com/api/v10';
 const SESSION_COOKIE = 'kael_discord_session';
 const STATE_COOKIE = 'kael_oauth_state';
+const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
+const TOKEN_RENEWAL_WINDOW_MS = 5 * 60 * 1000;
 
 export type DiscordGuild = {
   id: string;
@@ -11,8 +13,14 @@ export type DiscordGuild = {
 
 type DiscordSession = {
   accessToken: string;
+  refreshToken: string | null;
   expiresAt: number;
   profile: DiscordProfile | null;
+};
+
+export type DiscordSessionResolution = {
+  session: DiscordSession | null;
+  setCookie: string | null;
 };
 
 export type DiscordProfile = {
@@ -149,11 +157,14 @@ async function decryptSession(value: string, secret: string): Promise<DiscordSes
       base64UrlDecode(ciphertextEncoded),
     );
     const parsed = JSON.parse(new TextDecoder().decode(plaintext)) as DiscordSession;
-    if (typeof parsed.accessToken !== 'string' || typeof parsed.expiresAt !== 'number' || parsed.expiresAt <= Date.now()) {
+    if (typeof parsed.accessToken !== 'string' || typeof parsed.expiresAt !== 'number') {
       return null;
     }
     return {
       accessToken: parsed.accessToken,
+      // Sessões emitidas antes da renovação automática continuam válidas até
+      // vencerem. Depois disso a pessoa só precisa entrar novamente uma vez.
+      refreshToken: typeof parsed.refreshToken === 'string' ? parsed.refreshToken : null,
       expiresAt: parsed.expiresAt,
       profile: parsed.profile && typeof parsed.profile.displayName === 'string'
         ? { displayName: parsed.profile.displayName, avatarUrl: typeof parsed.profile.avatarUrl === 'string' ? parsed.profile.avatarUrl : null }
@@ -162,6 +173,29 @@ async function decryptSession(value: string, secret: string): Promise<DiscordSes
   } catch {
     return null;
   }
+}
+
+type DiscordTokenResponse = {
+  access_token?: string;
+  refresh_token?: string;
+  expires_in?: number;
+  error?: string;
+  error_description?: string;
+};
+
+async function exchangeDiscordToken(form: URLSearchParams): Promise<DiscordTokenResponse & { ok: boolean; status: number }> {
+  const response = await fetch(`${DISCORD_API}/oauth2/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: form,
+  });
+  const token = await response.json() as DiscordTokenResponse;
+  return { ...token, ok: response.ok, status: response.status };
+}
+
+async function sessionCookie(session: DiscordSession, configuration: DiscordOAuthConfiguration) {
+  const encrypted = await encryptSession(session, configuration.sessionSecret);
+  return cookie(SESSION_COOKIE, encrypted, SESSION_MAX_AGE_SECONDS, isSecureCookie(configuration.publicUrl));
 }
 
 async function fetchDiscordProfile(accessToken: string): Promise<DiscordProfile | null> {
@@ -246,15 +280,10 @@ export async function finishDiscordLogin(request: Request) {
   });
 
   try {
-    const tokenResponse = await fetch(`${DISCORD_API}/oauth2/token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: form,
-    });
-    const token = await tokenResponse.json() as { access_token?: string; expires_in?: number; error?: string; error_description?: string };
-    if (!tokenResponse.ok || !token.access_token || !token.expires_in) {
+    const token = await exchangeDiscordToken(form);
+    if (!token.ok || !token.access_token || !token.expires_in) {
       console.error('Discord recusou a troca do código de login', {
-        status: tokenResponse.status,
+        status: token.status,
         error: token.error,
         description: token.error_description,
       });
@@ -263,13 +292,14 @@ export async function finishDiscordLogin(request: Request) {
 
     const encryptedSession = await encryptSession({
       accessToken: token.access_token,
+      refreshToken: token.refresh_token ?? null,
       expiresAt: Date.now() + token.expires_in * 1000,
       profile: await fetchDiscordProfile(token.access_token),
     }, configuration.sessionSecret);
 
     return redirectWithCookies(new URL('/servidores', configuration.publicUrl), [
       clearState,
-      cookie(SESSION_COOKIE, encryptedSession, Math.max(60, Math.floor(token.expires_in)), isSecureCookie(configuration.publicUrl)),
+      cookie(SESSION_COOKIE, encryptedSession, SESSION_MAX_AGE_SECONDS, isSecureCookie(configuration.publicUrl)),
     ]);
   } catch (error) {
     console.error('Falha ao finalizar login Discord', {
@@ -290,11 +320,54 @@ export function beginBotInvite(request: Request) {
   return Response.redirect(invite, 302);
 }
 
-export async function getDiscordSession(request: Request) {
+export async function resolveDiscordSession(request: Request): Promise<DiscordSessionResolution> {
   const configuration = getOAuthConfiguration();
   const encryptedSession = readCookie(request.headers.get('Cookie'), SESSION_COOKIE);
-  if (!configuration || !encryptedSession) return null;
-  return decryptSession(encryptedSession, configuration.sessionSecret);
+  if (!configuration || !encryptedSession) return { session: null, setCookie: null };
+
+  const session = await decryptSession(encryptedSession, configuration.sessionSecret);
+  if (!session) {
+    return { session: null, setCookie: cookie(SESSION_COOKIE, '', 0, isSecureCookie(configuration.publicUrl)) };
+  }
+
+  if (session.expiresAt > Date.now() + TOKEN_RENEWAL_WINDOW_MS) {
+    return { session, setCookie: null };
+  }
+
+  if (!session.refreshToken) {
+    return { session: null, setCookie: cookie(SESSION_COOKIE, '', 0, isSecureCookie(configuration.publicUrl)) };
+  }
+
+  try {
+    const token = await exchangeDiscordToken(new URLSearchParams({
+      client_id: configuration.clientId,
+      client_secret: configuration.clientSecret,
+      grant_type: 'refresh_token',
+      refresh_token: session.refreshToken,
+    }));
+    if (!token.ok || !token.access_token || !token.expires_in) {
+      console.warn('Discord recusou a renovação da sessão.', { status: token.status, error: token.error });
+      return { session: null, setCookie: cookie(SESSION_COOKIE, '', 0, isSecureCookie(configuration.publicUrl)) };
+    }
+
+    const renewedSession: DiscordSession = {
+      accessToken: token.access_token,
+      refreshToken: token.refresh_token ?? session.refreshToken,
+      expiresAt: Date.now() + token.expires_in * 1000,
+      profile: session.profile,
+    };
+    console.info('PainelKael: sessão Discord renovada.');
+    return { session: renewedSession, setCookie: await sessionCookie(renewedSession, configuration) };
+  } catch (error) {
+    console.error('Falha ao renovar a sessão Discord.', {
+      message: error instanceof Error ? error.message : 'erro desconhecido',
+    });
+    return { session: null, setCookie: cookie(SESSION_COOKIE, '', 0, isSecureCookie(configuration.publicUrl)) };
+  }
+}
+
+export async function getDiscordSession(request: Request) {
+  return (await resolveDiscordSession(request)).session;
 }
 
 export async function getDiscordProfile(request: Request) {
@@ -303,10 +376,7 @@ export async function getDiscordProfile(request: Request) {
   return session.profile ?? fetchDiscordProfile(session.accessToken);
 }
 
-export async function managedGuilds(request: Request): Promise<DiscordGuild[] | null> {
-  const session = await getDiscordSession(request);
-  if (!session) return null;
-
+export async function managedGuilds(session: DiscordSession): Promise<DiscordGuild[] | null> {
   const response = await fetch(`${DISCORD_API}/users/@me/guilds`, {
     headers: { Authorization: `Bearer ${session.accessToken}` },
   });
@@ -366,8 +436,8 @@ async function kaelGuilds(): Promise<DiscordGuild[] | null> {
   }
 }
 
-export async function dashboardGuilds(request: Request): Promise<DiscordGuild[] | undefined | null> {
-  const userGuilds = await managedGuilds(request);
+export async function dashboardGuilds(session: DiscordSession): Promise<DiscordGuild[] | undefined | null> {
+  const userGuilds = await managedGuilds(session);
   if (!userGuilds) return null;
 
   const botGuilds = await kaelGuilds();
