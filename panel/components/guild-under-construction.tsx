@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, Construction, LogIn } from 'lucide-react';
+import { KaelArrowLeft, KaelConstruct, KaelEnter } from '@/components/kael-icons';
 import { useEffect, useState } from 'react';
 
 type State = 'loading' | 'guest' | 'allowed' | 'denied';
@@ -21,19 +21,19 @@ export function GuildUnderConstruction({ guildId }: { guildId: string }) {
 
   if (state === 'loading') return <div className="panel-state">Verificando acesso ao servidor...</div>;
   if (state === 'guest') {
-    return <div className="panel-empty"><span className="panel-empty-icon"><LogIn aria-hidden="true" /></span><h2>Entre com o Discord primeiro</h2><p>Precisamos confirmar se você pode gerenciar esse servidor.</p><a className="panel-primary-link" href="/api/auth/discord">Entrar com Discord</a></div>;
+    return <div className="panel-empty"><span className="panel-empty-icon"><KaelEnter /></span><h2>Entre com o Discord primeiro</h2><p>Precisamos confirmar se você pode gerenciar esse servidor.</p><a className="panel-primary-link" href="/api/auth/discord">Entrar com Discord</a></div>;
   }
   if (state === 'denied') {
-    return <div className="panel-empty"><h2>Você não tem acesso a esse servidor.</h2><p>Escolha um servidor que você possa gerenciar.</p><a className="panel-secondary-link" href="/servidores"><ArrowLeft aria-hidden="true" /> Voltar aos servidores</a></div>;
+    return <div className="panel-empty"><h2>Você não tem acesso a esse servidor.</h2><p>Escolha um servidor que você possa gerenciar.</p><a className="panel-secondary-link" href="/servidores"><KaelArrowLeft /> Voltar aos servidores</a></div>;
   }
 
   return (
     <div className="construction-card">
-      <span className="construction-icon"><Construction aria-hidden="true" /></span>
+      <span className="construction-icon"><KaelConstruct /></span>
       <p className="panel-kicker">PAINEL DO SERVIDOR</p>
       <h2>Estamos criando essa aba.</h2>
       <p>Não se preocupe, será rápido.</p>
-      <a className="panel-secondary-link" href="/servidores"><ArrowLeft aria-hidden="true" /> Voltar aos servidores</a>
+      <a className="panel-secondary-link" href="/servidores"><KaelArrowLeft /> Voltar aos servidores</a>
     </div>
   );
 }

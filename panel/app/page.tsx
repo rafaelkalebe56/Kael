@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { ArrowRight, LogIn, Plus, ShieldCheck } from 'lucide-react';
+import { KaelAdd, KaelArrowRight, KaelEnter, KaelShield } from '@/components/kael-icons';
 import { useEffect, useState } from 'react';
 
 export default function Home() {
@@ -41,7 +41,7 @@ export default function Home() {
           <a className="active" href="/inicio">Início</a>
         </nav>
         <a className="nav-action" href="/api/discord/invite">
-          <Plus aria-hidden="true" /> Adicionar ao servidor
+          <KaelAdd /> Adicionar ao servidor
         </a>
       </header>
 
@@ -52,10 +52,10 @@ export default function Home() {
           <p className="hero-description">Kael ajuda você a moderar, organizar e cuidar do seu servidor Discord.</p>
           <div className="actions">
             <a className="primary-action" href="/api/discord/invite">
-              Adicionar Kael ao servidor <ArrowRight aria-hidden="true" />
+              Adicionar Kael ao servidor <KaelArrowRight />
             </a>
             <a className="secondary-action" href="/api/auth/discord">
-              <LogIn aria-hidden="true" /> Acessar painel
+              <KaelEnter /> Acessar painel
             </a>
           </div>
         </div>
@@ -79,7 +79,7 @@ export default function Home() {
           <p>Todo servidor tem sua própria personalidade. O Kael foi criado para ajudar sua comunidade a crescer com organização, diversão e menos tarefas repetitivas.</p>
           <p>Enquanto você cuida das pessoas e dos momentos importantes, ele ajuda a manter tudo funcionando de um jeito simples, bonito e do seu jeito.</p>
           <div className="about-highlight">
-            <span className="about-highlight-icon"><ShieldCheck aria-hidden="true" /></span>
+            <span className="about-highlight-icon"><KaelShield /></span>
             <span>Mais organização para a equipe. Mais tranquilidade para a comunidade.</span>
           </div>
         </div>
