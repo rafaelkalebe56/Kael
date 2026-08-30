@@ -10,6 +10,10 @@ Railway, ele detecta automaticamente o Volume montado em `/data` e salva o
 banco em `/data/kael.sqlite3`. Localmente, o arquivo fica em `data/` e não é
 enviado ao Git. Caso precise usar outro local, defina `KAEL_DATA_DIR`.
 
+Para o PainelKael mostrar somente servidores onde o bot está instalado, defina
+`DASHBOARD_API_KEY` no serviço Kael e use o mesmo valor como `BOT_API_KEY` no
+PainelKael. A comunicação ocorre pela rede privada da Railway.
+
 ## Padrões de interface
 
 - Mensagens novas usam **Discord Components v2**, não embeds.

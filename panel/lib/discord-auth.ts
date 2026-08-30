@@ -6,6 +6,7 @@ export type DiscordGuild = {
   id: string;
   name: string;
   icon: string | null;
+  banner: string | null;
 };
 
 type DiscordSession = {
@@ -21,6 +22,11 @@ type DiscordPublicConfiguration = {
 type DiscordOAuthConfiguration = DiscordPublicConfiguration & {
   clientSecret: string;
   sessionSecret: string;
+};
+
+type BotConfiguration = {
+  baseUrl: URL;
+  apiKey: string;
 };
 
 function trimTrailingSlash(value: string) {
@@ -53,6 +59,20 @@ function getOAuthConfiguration(): DiscordOAuthConfiguration | null {
   }
 
   return { ...publicConfiguration, clientSecret, sessionSecret };
+}
+
+function getBotConfiguration(): BotConfiguration | null {
+  const rawBaseUrl = process.env.BOT_API_URL?.trim();
+  const apiKey = process.env.BOT_API_KEY?.trim();
+  if (!rawBaseUrl || !apiKey) return null;
+
+  try {
+    const baseUrl = new URL(trimTrailingSlash(rawBaseUrl));
+    if (baseUrl.protocol !== 'http:' && baseUrl.protocol !== 'https:') return null;
+    return { baseUrl, apiKey };
+  } catch {
+    return null;
+  }
 }
 
 function base64UrlEncode(bytes: Uint8Array) {
@@ -267,7 +287,47 @@ export async function managedGuilds(request: Request): Promise<DiscordGuild[] | 
         return false;
       }
     })
-    .map(({ id, name, icon }) => ({ id, name, icon }));
+    .map(({ id, name, icon }) => ({ id, name, icon, banner: null }));
+}
+
+async function kaelGuilds(): Promise<DiscordGuild[] | null> {
+  const configuration = getBotConfiguration();
+  if (!configuration) return null;
+
+  try {
+    const response = await fetch(new URL('/internal/guilds', configuration.baseUrl), {
+      headers: { Authorization: `Bearer ${configuration.apiKey}` },
+      redirect: 'error',
+    });
+    if (!response.ok) return null;
+    const payload = await response.json() as { guilds?: unknown };
+    if (!Array.isArray(payload.guilds)) return null;
+
+    return payload.guilds.flatMap((guild) => {
+      if (!guild || typeof guild !== 'object') return [];
+      const value = guild as Record<string, unknown>;
+      if (typeof value.id !== 'string' || typeof value.name !== 'string') return [];
+      return [{
+        id: value.id,
+        name: value.name,
+        icon: typeof value.icon === 'string' ? value.icon : null,
+        banner: typeof value.banner === 'string' ? value.banner : null,
+      }];
+    });
+  } catch {
+    return null;
+  }
+}
+
+export async function dashboardGuilds(request: Request): Promise<DiscordGuild[] | undefined | null> {
+  const userGuilds = await managedGuilds(request);
+  if (!userGuilds) return null;
+
+  const botGuilds = await kaelGuilds();
+  if (!botGuilds) return undefined;
+
+  const manageableGuildIds = new Set(userGuilds.map((guild) => guild.id));
+  return botGuilds.filter((guild) => manageableGuildIds.has(guild.id));
 }
 
 export function clearDiscordSession(request: Request) {

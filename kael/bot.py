@@ -7,6 +7,7 @@ from discord.ext import commands
 
 from kael.config import Settings
 from kael.database import Database
+from kael.dashboard_api import DashboardApi
 
 
 class KaelBot(commands.Bot):
@@ -17,9 +18,16 @@ class KaelBot(commands.Bot):
         super().__init__(command_prefix="!", intents=intents)
         self.settings = settings
         self.database = Database(settings.database_path)
+        self.dashboard_api = (
+            DashboardApi(self, settings.dashboard_api_key, settings.dashboard_api_port)
+            if settings.dashboard_api_key
+            else None
+        )
 
     async def setup_hook(self) -> None:
         self.database.initialize()
+        if self.dashboard_api is not None:
+            await self.dashboard_api.start()
         await self.load_extension("kael.cogs.status")
 
         if self.settings.dev_guild_id:
@@ -38,5 +46,7 @@ class KaelBot(commands.Bot):
         self.database.ensure_guild(guild.id)
 
     async def close(self) -> None:
+        if self.dashboard_api is not None:
+            await self.dashboard_api.stop()
         self.database.close()
         await super().close()

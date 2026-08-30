@@ -31,6 +31,8 @@ class Settings:
     discord_token: str
     dev_guild_id: int | None
     database_path: Path
+    dashboard_api_key: str | None
+    dashboard_api_port: int
 
     @classmethod
     def from_environment(cls) -> "Settings":
@@ -43,8 +45,14 @@ class Settings:
         if raw_guild_id and not raw_guild_id.isdigit():
             raise RuntimeError("KAEL_DEV_GUILD_ID precisa ser um ID numérico do Discord.")
 
+        raw_api_port = os.getenv("DASHBOARD_API_PORT", "8080").strip()
+        if not raw_api_port.isdigit() or not 1 <= int(raw_api_port) <= 65535:
+            raise RuntimeError("DASHBOARD_API_PORT precisa ser uma porta válida.")
+
         return cls(
             discord_token=token,
             dev_guild_id=int(raw_guild_id) if raw_guild_id else None,
             database_path=resolve_data_directory() / "kael.sqlite3",
+            dashboard_api_key=os.getenv("DASHBOARD_API_KEY", "").strip() or None,
+            dashboard_api_port=int(raw_api_port),
         )
