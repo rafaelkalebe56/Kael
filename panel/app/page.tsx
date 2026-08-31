@@ -2,11 +2,12 @@
 
 import Image from 'next/image';
 import { KaelAdd, KaelArrowRight, KaelBot, KaelClock, KaelEnter, KaelMembers, KaelMoon, KaelServer, KaelShield, KaelSun, KaelUser, KaelWand } from '@/components/kael-icons';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type MouseEvent as ReactMouseEvent } from 'react';
 
 type DiscordProfile = { displayName: string; avatarUrl: string | null };
 type SessionState = 'loading' | 'guest' | 'connected';
 type ServiceStatus = { state: 'loading' | 'online' | 'starting' | 'offline'; guildCount: number | null; memberCount: number | null; latencyMs: number | null };
+type OpeningAction = 'login' | 'invite' | null;
 
 export default function Home() {
   const [hasEntered, setHasEntered] = useState(false);
@@ -14,6 +15,7 @@ export default function Home() {
   const [sessionState, setSessionState] = useState<SessionState>('loading');
   const [profile, setProfile] = useState<DiscordProfile | null>(null);
   const [serviceStatus, setServiceStatus] = useState<ServiceStatus>({ state: 'loading', guildCount: null, memberCount: null, latencyMs: null });
+  const [openingAction, setOpeningAction] = useState<OpeningAction>(null);
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem('kael-theme');
@@ -32,6 +34,8 @@ export default function Home() {
     document.addEventListener('copy', blockCopy);
     document.addEventListener('cut', blockCopy);
     document.addEventListener('dragstart', blockDrag);
+    const resetOpeningAction = () => setOpeningAction(null);
+    window.addEventListener('pageshow', resetOpeningAction);
 
     let active = true;
     const loadProfile = async () => {
@@ -68,12 +72,21 @@ export default function Home() {
       document.removeEventListener('copy', blockCopy);
       document.removeEventListener('cut', blockCopy);
       document.removeEventListener('dragstart', blockDrag);
+      window.removeEventListener('pageshow', resetOpeningAction);
     };
   }, []);
 
   const changeTheme = (nextTheme: 'dark' | 'light') => {
     setTheme(nextTheme);
     window.localStorage.setItem('kael-theme', nextTheme);
+  };
+
+  const openDiscord = (event: ReactMouseEvent<HTMLAnchorElement>, action: Exclude<OpeningAction, null>, destination: string) => {
+    if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    if (openingAction) return;
+    setOpeningAction(action);
+    window.setTimeout(() => window.location.assign(destination), 180);
   };
 
   const statusLabel = serviceStatus.state === 'online'
@@ -106,9 +119,11 @@ export default function Home() {
               <span>Meus servidores</span>
             </a>
           ) : (
-            <a className="home-nav-panel" href="/api/auth/discord"><span className="home-nav-panel-full">Entrar com Discord</span><span className="home-nav-panel-short">Entrar</span></a>
+            <a className={`home-nav-panel discord-action ${openingAction === 'login' ? 'is-opening' : ''}`} href="/api/auth/discord" aria-busy={openingAction === 'login'} onClick={(event) => openDiscord(event, 'login', '/api/auth/discord')}>
+              {openingAction === 'login' && <i className="home-action-spinner" aria-hidden="true" />}<span className="home-nav-panel-full">{openingAction === 'login' ? 'Abrindo Discord…' : 'Entrar com Discord'}</span><span className="home-nav-panel-short">{openingAction === 'login' ? 'Abrindo…' : 'Entrar'}</span>
+            </a>
           )}
-          <a className="home-nav-add" href="/api/discord/invite"><KaelAdd /> Adicionar ao Discord</a>
+          <a className={`home-nav-add discord-action ${openingAction === 'invite' ? 'is-opening' : ''}`} href="/api/discord/invite" aria-busy={openingAction === 'invite'} onClick={(event) => openDiscord(event, 'invite', '/api/discord/invite')}>{openingAction === 'invite' ? <i className="home-action-spinner" aria-hidden="true" /> : <KaelAdd />} <span>{openingAction === 'invite' ? 'Abrindo Discord…' : 'Adicionar ao Discord'}</span></a>
         </div>
       </header>
 
@@ -117,7 +132,7 @@ export default function Home() {
           <h1 id="hero-title">Seu servidor<br />funciona melhor<br />com o Kael.</h1>
           <p>Moderação, organização e ferramentas para sua comunidade em um só lugar.</p>
           <div className="home-hero-actions">
-            <a className="home-primary" href="/api/discord/invite"><KaelBot /> Adicionar ao Discord</a>
+            <a className={`home-primary discord-action ${openingAction === 'invite' ? 'is-opening' : ''}`} href="/api/discord/invite" aria-busy={openingAction === 'invite'} onClick={(event) => openDiscord(event, 'invite', '/api/discord/invite')}>{openingAction === 'invite' ? <i className="home-action-spinner" aria-hidden="true" /> : <KaelBot />} {openingAction === 'invite' ? 'Abrindo Discord…' : 'Adicionar ao Discord'}</a>
             <a className="home-secondary" href="#recursos">Conhecer o Kael <KaelArrowRight /></a>
           </div>
           <dl className="home-proof" aria-label="Números atuais do Kael">
@@ -160,7 +175,7 @@ export default function Home() {
 
       <section className="home-about" id="sobre" aria-labelledby="about-title">
         <div className="home-about-copy"><p>SOBRE O KAEL</p><h2 id="about-title">Feito para comunidades que querem crescer bem.</h2><span>O Kael nasceu para organizar o trabalho da equipe e deixar a experiência da comunidade mais leve. Cada recurso é pensado para ser direto, bonito e fácil de configurar.</span>
-          <a href="/api/discord/invite">Adicionar ao Discord <KaelArrowRight /></a>
+          <a className={`discord-action ${openingAction === 'invite' ? 'is-opening' : ''}`} href="/api/discord/invite" aria-busy={openingAction === 'invite'} onClick={(event) => openDiscord(event, 'invite', '/api/discord/invite')}>{openingAction === 'invite' ? <><i className="home-action-spinner" aria-hidden="true" /> Abrindo Discord…</> : <>Adicionar ao Discord <KaelArrowRight /></>}</a>
         </div>
       </section>
 
