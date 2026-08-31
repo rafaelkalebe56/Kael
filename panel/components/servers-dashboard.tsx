@@ -1,7 +1,6 @@
 'use client';
 
 import { KaelAdd, KaelArrowRight, KaelBot, KaelEnter, KaelMembers, KaelRefresh, KaelSearch, KaelServer, KaelSpark } from '@/components/kael-icons';
-import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 type Guild = { id: string; name: string; icon: string | null; banner: string | null; memberCount?: number };
@@ -99,7 +98,7 @@ export function ServersDashboard() {
       ) : (
         <div className="server-grid">
           {filteredGuilds.map((guild) => (
-            <Link className="server-card" key={guild.id} href={`/servidores/${guild.id}`}>
+            <a className="server-card" key={guild.id} href={`/servidores/${guild.id}`}>
               <span className="server-banner" aria-hidden="true">
               {guild.banner ? <img src={guild.banner} alt="" draggable={false} /> : guild.icon ? <img className="server-banner-icon-bg" src={guild.icon} alt="" draggable={false} /> : <span className="server-banner-fallback"><KaelSpark /></span>}
               </span>
@@ -107,10 +106,10 @@ export function ServersDashboard() {
                 <span className="server-icon" aria-hidden="true">
                   {guild.icon ? <img src={guild.icon} alt="" draggable={false} /> : guild.name.slice(0, 1).toUpperCase()}
                 </span>
-                <span className="server-card-copy"><span className="server-name">{guild.name}</span><span className="server-online"><i /> Kael online</span>{typeof guild.memberCount === 'number' && <span className="server-members"><KaelMembers /> {guild.memberCount.toLocaleString('pt-BR')} {guild.memberCount === 1 ? 'membro' : 'membros'}</span>}</span>
+                <span className="server-card-copy"><span className="server-name">{guild.name}</span>{typeof guild.memberCount === 'number' && <span className="server-members"><KaelMembers /> {guild.memberCount.toLocaleString('pt-BR')} {guild.memberCount === 1 ? 'membro' : 'membros'}</span>}</span>
                 <span className="server-manage">Gerenciar <KaelArrowRight /></span>
               </span>
-            </Link>
+            </a>
           ))}
 
           <a className="server-add-card" href="/api/discord/invite">
