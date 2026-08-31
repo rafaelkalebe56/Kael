@@ -159,8 +159,7 @@ export default function Home() {
       </section>
 
       <section className="home-about" id="sobre" aria-labelledby="about-title">
-        <div className="home-about-art"><Image src="/kael-avatar.webp" alt="Retrato do Kael" width={420} height={420} unoptimized sizes="(max-width: 700px) 300px, 420px" draggable={false} /></div>
-        <div><p>SOBRE O KAEL</p><h2 id="about-title">Feito para comunidades que querem crescer bem.</h2><span>O Kael nasceu para organizar o trabalho da equipe e deixar a experiência da comunidade mais leve. Cada recurso é pensado para ser direto, bonito e fácil de configurar.</span>
+        <div className="home-about-copy"><p>SOBRE O KAEL</p><h2 id="about-title">Feito para comunidades que querem crescer bem.</h2><span>O Kael nasceu para organizar o trabalho da equipe e deixar a experiência da comunidade mais leve. Cada recurso é pensado para ser direto, bonito e fácil de configurar.</span>
           <a href="/api/discord/invite">Adicionar ao Discord <KaelArrowRight /></a>
         </div>
       </section>
