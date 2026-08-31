@@ -231,10 +231,18 @@ function redirectWithCookies(location: URL | string, cookies: string[]) {
   return new Response(null, { status: 302, headers });
 }
 
-export function beginDiscordLogin(request: Request) {
+export async function beginDiscordLogin(request: Request) {
   const configuration = getOAuthConfiguration();
   if (!configuration) {
     return Response.redirect(new URL('/inicio?erro=integracao', request.url), 302);
+  }
+
+  // O botão "Acessar painel" também é usado por quem já está autenticado.
+  // Nesse caso, reaproveitamos a sessão (e renovamos o token se necessário)
+  // em vez de iniciar o fluxo OAuth novamente.
+  const currentSession = await resolveDiscordSession(request);
+  if (currentSession.session) {
+    return redirectWithCookies(new URL('/servidores', configuration.publicUrl), currentSession.setCookie ? [currentSession.setCookie] : []);
   }
 
   const state = secureRandomToken();
@@ -245,9 +253,9 @@ export function beginDiscordLogin(request: Request) {
   authorization.searchParams.set('scope', 'identify guilds');
   authorization.searchParams.set('state', state);
 
-  return redirectWithCookies(authorization, [
-    cookie(STATE_COOKIE, state, 10 * 60, isSecureCookie(configuration.publicUrl)),
-  ]);
+  const cookies = [cookie(STATE_COOKIE, state, 10 * 60, isSecureCookie(configuration.publicUrl))];
+  if (currentSession.setCookie) cookies.unshift(currentSession.setCookie);
+  return redirectWithCookies(authorization, cookies);
 }
 
 export async function finishDiscordLogin(request: Request) {
