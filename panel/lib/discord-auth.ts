@@ -44,6 +44,13 @@ type BotConfiguration = {
   apiKey: string;
 };
 
+export type KaelServiceStatus = {
+  state: 'online' | 'starting' | 'offline';
+  guildCount: number | null;
+  memberCount: number | null;
+  latencyMs: number | null;
+};
+
 function trimTrailingSlash(value: string) {
   return value.replace(/\/+$/, '');
 }
@@ -445,6 +452,32 @@ async function kaelGuilds(): Promise<DiscordGuild[] | null> {
       message: error instanceof Error ? error.message : 'erro desconhecido',
     });
     return null;
+  }
+}
+
+export async function kaelServiceStatus(): Promise<KaelServiceStatus> {
+  const configuration = getBotConfiguration();
+  const offline: KaelServiceStatus = { state: 'offline', guildCount: null, memberCount: null, latencyMs: null };
+  if (!configuration) return offline;
+
+  try {
+    const response = await fetch(new URL('/internal/status', configuration.baseUrl), {
+      headers: { Authorization: `Bearer ${configuration.apiKey}` },
+      redirect: 'manual',
+      signal: AbortSignal.timeout(4_000),
+    });
+    if (!response.ok) return offline;
+
+    const payload = await response.json() as Record<string, unknown>;
+    const ready = payload.ready === true;
+    return {
+      state: ready ? 'online' : 'starting',
+      guildCount: ready && typeof payload.guildCount === 'number' && Number.isFinite(payload.guildCount) ? payload.guildCount : null,
+      memberCount: ready && typeof payload.memberCount === 'number' && Number.isFinite(payload.memberCount) ? payload.memberCount : null,
+      latencyMs: ready && typeof payload.latencyMs === 'number' && Number.isFinite(payload.latencyMs) ? payload.latencyMs : null,
+    };
+  } catch {
+    return offline;
   }
 }
 

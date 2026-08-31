@@ -8,7 +8,7 @@ export default function ServersPage() {
   return (
     <main className="dashboard-page">
       <aside className="dashboard-sidebar">
-        <a className="brand dashboard-brand" href="/inicio" aria-label="Kael - início"><img src="/kael-avatar.png" alt="" /><span>Kael</span></a>
+        <a className="brand dashboard-brand" href="/inicio" aria-label="Kael - início"><img src="/kael-avatar.webp" alt="" /><span>Kael</span></a>
         <nav className="dashboard-menu" aria-label="Menu do painel">
           <a className="dashboard-menu-item active" href="/servidores"><KaelGrid /> Meus servidores</a>
           <a className="dashboard-menu-item" href="/inicio#sobre"><KaelHelp /> Sobre o Kael</a>

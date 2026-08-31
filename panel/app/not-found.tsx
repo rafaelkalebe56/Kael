@@ -11,7 +11,7 @@ export default function NotFound() {
         <a className="panel-primary-link" href="/inicio"><KaelArrowLeft /> Voltar para o início</a>
       </section>
       <div className="not-found-art" aria-label="Kael confuso com pontos de interrogação">
-        <Image src="/kael-confused.png" alt="Kael com expressão de dúvida" width={768} height={1024} priority unoptimized draggable={false} />
+        <Image src="/kael-confused.webp" alt="Kael com expressão de dúvida" width={768} height={1152} priority sizes="(max-width: 800px) 90vw, 48vw" draggable={false} />
       </div>
     </main>
   );
