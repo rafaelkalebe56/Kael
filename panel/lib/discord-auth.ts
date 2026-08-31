@@ -9,6 +9,7 @@ export type DiscordGuild = {
   name: string;
   icon: string | null;
   banner: string | null;
+  memberCount?: number;
 };
 
 type DiscordSession = {
@@ -434,6 +435,7 @@ async function kaelGuilds(): Promise<DiscordGuild[] | null> {
         name: value.name,
         icon: typeof value.icon === 'string' ? value.icon : null,
         banner: typeof value.banner === 'string' ? value.banner : null,
+        memberCount: typeof value.memberCount === 'number' && Number.isFinite(value.memberCount) ? value.memberCount : undefined,
       }];
     });
     console.info('PainelKael: servidores recebidos do Kael.', { count: guilds.length });
