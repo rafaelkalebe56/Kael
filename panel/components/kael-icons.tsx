@@ -20,3 +20,8 @@ export function KaelSpark(props: IconProps) { return <Icon {...props}><path d="m
 export function KaelConstruct(props: IconProps) { return <Icon {...props}><path d="m14 5 5 5M13 6l-7 7M5 13l-2 6 6-2M15 3l6 6M17 13l4 4M19 11l-4 4" /></Icon>; }
 export function KaelUser(props: IconProps) { return <Icon {...props}><circle cx="12" cy="8" r="3" /><path d="M5 20c.8-4 3.1-6 7-6s6.2 2 7 6" /></Icon>; }
 export function KaelExit(props: IconProps) { return <Icon {...props}><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10" /></Icon>; }
+export function KaelSun(props: IconProps) { return <Icon {...props}><circle cx="12" cy="12" r="3.5" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1" /></Icon>; }
+export function KaelMoon(props: IconProps) { return <Icon {...props}><path d="M20 15.5A8 8 0 0 1 8.5 4 8 8 0 1 0 20 15.5Z" /></Icon>; }
+export function KaelCommand(props: IconProps) { return <Icon {...props}><path d="M5 7h7M5 12h10M5 17h6M18 7l2 2-2 2" /></Icon>; }
+export function KaelWand(props: IconProps) { return <Icon {...props}><path d="m5 19 10-10M13 5l1 2 2 1-2 1-1 2-1-2-2-1 2-1 1-2ZM18 14l.7 1.3L20 16l-1.3.7L18 18l-.7-1.3L16 16l1.3-.7L18 14Z" /></Icon>; }
+export function KaelClock(props: IconProps) { return <Icon {...props}><circle cx="12" cy="12" r="8.5" /><path d="M12 7v5l3 2" /></Icon>; }
