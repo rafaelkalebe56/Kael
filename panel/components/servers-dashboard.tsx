@@ -67,7 +67,7 @@ export function ServersDashboard() {
       {guilds.map((guild) => (
         <a className="server-card" key={guild.id} href={`/servidores/${guild.id}`}>
           <span className="server-banner" aria-hidden="true">
-              {guild.banner ? <img src={guild.banner} alt="" draggable={false} /> : <span className="server-banner-fallback"><KaelSpark /></span>}
+              {guild.banner ? <img src={guild.banner} alt="" draggable={false} /> : guild.icon ? <img className="server-banner-icon-bg" src={guild.icon} alt="" draggable={false} /> : <span className="server-banner-fallback"><KaelSpark /></span>}
           </span>
           <span className="server-card-body">
             <span className="server-icon" aria-hidden="true">
