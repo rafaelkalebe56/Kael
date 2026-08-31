@@ -1,6 +1,8 @@
 'use client';
 
-import { KaelExit, KaelUser } from '@/components/kael-icons';
+import { KaelChevronDown, KaelExit, KaelGrid, KaelUser } from '@/components/kael-icons';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 type Profile = { displayName: string; avatarUrl: string | null };
@@ -16,12 +18,20 @@ export function DashboardProfile() {
   }, []);
 
   return (
-    <div className="dashboard-profile">
-      <span className="dashboard-profile-avatar" aria-hidden="true">
-        {profile?.avatarUrl ? <img src={profile.avatarUrl} alt="" draggable={false} /> : <KaelUser />}
-      </span>
-      <span className="dashboard-profile-copy"><strong>{profile?.displayName ?? 'Discord'}</strong><small>Conectado</small></span>
-      <a href="/api/auth/logout" aria-label="Sair do painel"><KaelExit /></a>
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger className="dashboard-profile" aria-label="Abrir menu da conta">
+        <span className="dashboard-profile-avatar" aria-hidden="true">
+          {profile?.avatarUrl ? <img src={profile.avatarUrl} alt="" draggable={false} /> : <KaelUser />}
+        </span>
+        <span className="dashboard-profile-copy"><strong>{profile?.displayName ?? 'Discord'}</strong><small>{profile ? 'Conectado' : 'Carregando'}</small></span>
+        <KaelChevronDown className="dashboard-profile-chevron" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" sideOffset={8} className="dashboard-account-menu">
+        <DropdownMenuLabel className="dashboard-account-label">{profile?.displayName ?? 'Conta Discord'}</DropdownMenuLabel>
+        <DropdownMenuSeparator className="dashboard-account-separator" />
+        <DropdownMenuItem className="dashboard-account-item" render={<Link href="/servidores" />}><KaelGrid /> Meus servidores</DropdownMenuItem>
+        <DropdownMenuItem className="dashboard-account-item dashboard-account-logout" onClick={() => window.location.assign('/api/auth/logout')}><KaelExit /> Sair</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

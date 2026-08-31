@@ -30,7 +30,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: "(()=>{try{const s=localStorage.getItem('kael-theme');const t=s==='light'||s==='dark'?s:(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.dataset.kaelTheme=t;document.documentElement.style.colorScheme=t}catch{document.documentElement.dataset.kaelTheme='dark'}})();" }} />
+      </head>
       <body>{children}</body>
     </html>
   );

@@ -20,7 +20,10 @@ export default function Home() {
   useEffect(() => {
     const savedTheme = window.localStorage.getItem('kael-theme');
     const preferredTheme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-    setTheme(savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : preferredTheme);
+    const initialTheme = savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : preferredTheme;
+    document.documentElement.dataset.kaelTheme = initialTheme;
+    document.documentElement.style.colorScheme = initialTheme;
+    setTheme(initialTheme);
     if (!window.sessionStorage.getItem('kael-welcome-seen')) {
       window.sessionStorage.setItem('kael-welcome-seen', 'true');
       setHasEntered(true);
@@ -77,6 +80,8 @@ export default function Home() {
   }, []);
 
   const changeTheme = (nextTheme: 'dark' | 'light') => {
+    document.documentElement.dataset.kaelTheme = nextTheme;
+    document.documentElement.style.colorScheme = nextTheme;
     setTheme(nextTheme);
     window.localStorage.setItem('kael-theme', nextTheme);
   };
@@ -182,7 +187,7 @@ export default function Home() {
       <footer className="home-footer">
         <a className="home-brand" href="#inicio"><Image src="/kael-avatar.webp" alt="" width={38} height={38} unoptimized draggable={false} /><span>KAEL</span></a>
         <p>Feito para cuidar da sua comunidade.</p>
-        <span className={`home-live-status is-${serviceStatus.state}`} role="status"><i aria-hidden="true" />{statusLabel}</span>
+        <span id="status" className={`home-live-status is-${serviceStatus.state}`} role="status"><i aria-hidden="true" />{statusLabel}</span>
       </footer>
     </main>
   );
