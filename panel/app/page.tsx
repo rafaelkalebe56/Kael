@@ -47,9 +47,9 @@ export default function Home() {
 
       <section className="hero" id="inicio" aria-labelledby="hero-title">
         <div className="hero-copy">
-          <p className="eyebrow">SEU NOVO BOT DISCORD</p>
-          <h1 id="hero-title">Sua comunidade,<br /><span>mais simples.</span></h1>
-          <p className="hero-description">Kael ajuda você a moderar, organizar e cuidar do seu servidor Discord.</p>
+          <p className="eyebrow">BOT DISCORD · SIMPLES E DIRETO</p>
+          <h1 id="hero-title">Cuide do seu servidor.<br /><span>O Kael ajuda.</span></h1>
+          <p className="hero-description">Moderação, organização e ferramentas para sua comunidade — em um só lugar.</p>
           <div className="actions">
             <a className="primary-action" href="/api/discord/invite">
               Adicionar Kael ao servidor <KaelArrowRight />
@@ -58,14 +58,9 @@ export default function Home() {
               <KaelEnter /> Acessar painel
             </a>
           </div>
+          <p className="hero-note"><KaelShield /> Login seguro pelo Discord. Você decide quem pode gerenciar.</p>
         </div>
 
-        <div className="hero-symbols" aria-hidden="true">
-          <span className="symbol plus">+</span>
-          <span className="symbol ring">○</span>
-          <span className="symbol diamond">◇</span>
-          <span className="symbol dash">−</span>
-        </div>
         <div className={'kael-art ' + (hasEntered ? 'welcome-wave' : '')} aria-label="Kael acenando para dar boas-vindas">
           <Image src="/kael-wave.png" alt="Kael acenando" fill priority sizes="(max-width: 900px) 90vw, 60vw" draggable={false} />
           {hasEntered && <div className="hello-bubble" role="status">Olá, eu sou o Kael!</div>}
