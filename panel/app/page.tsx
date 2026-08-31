@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { KaelAdd, KaelArrowRight, KaelBot, KaelClock, KaelEnter, KaelMembers, KaelMoon, KaelServer, KaelShield, KaelSun, KaelWand } from '@/components/kael-icons';
+import { KaelAdd, KaelArrowRight, KaelBot, KaelClock, KaelMembers, KaelMoon, KaelServer, KaelShield, KaelSun, KaelWand } from '@/components/kael-icons';
 import { useEffect, useState } from 'react';
 
 export default function Home() {
@@ -55,7 +55,7 @@ export default function Home() {
             <button type="button" className={theme === 'light' ? 'active' : ''} onClick={() => changeTheme('light')} aria-label="Usar tema claro"><KaelSun /></button>
             <button type="button" className={theme === 'dark' ? 'active' : ''} onClick={() => changeTheme('dark')} aria-label="Usar tema escuro"><KaelMoon /></button>
           </div>
-          <a className="home-nav-panel" href="/servidores"><KaelEnter /> Acessar painel</a>
+          <a className="home-nav-panel" href="/servidores"><span className="home-nav-panel-full">Acessar painel</span><span className="home-nav-panel-short">Painel</span></a>
           <a className="home-nav-add" href="/api/discord/invite"><KaelAdd /> Adicionar ao Discord</a>
         </div>
       </header>
