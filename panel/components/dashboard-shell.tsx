@@ -1,7 +1,6 @@
 'use client';
 
 import Image from 'next/image';
-import Link from 'next/link';
 import { DashboardProfile } from '@/components/dashboard-profile';
 import { KaelGrid, KaelHome, KaelInfo, KaelMenu, KaelMoon, KaelPulse, KaelSun } from '@/components/kael-icons';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -21,7 +20,7 @@ function DashboardNavigation({ active }: { active: string }) {
     <nav className="dashboard-menu" aria-label="Menu do painel">
       {navigation.map((item) => {
         const NavigationIcon = item.icon;
-        return <Link className={`dashboard-menu-item ${active === item.key ? 'active' : ''}`} href={item.href} key={item.key}><NavigationIcon /><span>{item.label}</span></Link>;
+        return <a className={`dashboard-menu-item ${active === item.key ? 'active' : ''}`} href={item.href} key={item.key}><NavigationIcon /><span>{item.label}</span></a>;
       })}
     </nav>
   );
@@ -29,10 +28,10 @@ function DashboardNavigation({ active }: { active: string }) {
 
 function DashboardBrand() {
   return (
-    <Link className="dashboard-brand" href="/inicio" aria-label="Kael - início">
+    <a className="dashboard-brand" href="/inicio" aria-label="Kael - início">
       <Image src="/kael-avatar.webp" alt="" width={44} height={44} unoptimized draggable={false} />
       <span>KAEL</span>
-    </Link>
+    </a>
   );
 }
 

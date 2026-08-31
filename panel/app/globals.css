@@ -304,6 +304,7 @@ html[data-kael-theme='light'] .server-banner-icon-bg { filter:blur(18px) saturat
 .dashboard-page .panel-primary-link,.dashboard-page .panel-secondary-link { min-height:44px; margin-top:24px; border-radius:3px; box-shadow:none; }
 .dashboard-page .panel-primary-link { border:1px solid var(--dash-accent); color:#fff; background:var(--dash-accent); }
 .dashboard-page .panel-secondary-link { border:1px solid var(--dash-line-strong); color:var(--dash-text); background:var(--dash-surface-2); }
+.dashboard-profile-wrap { position:relative; }
 .dashboard-profile { display:grid; min-width:184px; height:46px; grid-template-columns:34px minmax(0,1fr) 20px; align-items:center; gap:9px; padding:5px 8px 5px 5px; border:1px solid var(--dash-line); border-radius:3px; color:var(--dash-text); background:var(--dash-surface); text-align:left; }
 .dashboard-profile:hover { border-color:var(--dash-line-strong); }
 .dashboard-profile-avatar { display:grid; width:34px; height:34px; place-items:center; overflow:hidden; border-radius:3px; color:#fff; background:var(--dash-accent); }
@@ -312,18 +313,15 @@ html[data-kael-theme='light'] .server-banner-icon-bg { filter:blur(18px) saturat
 .dashboard-profile-copy { display:flex; min-width:0; flex-direction:column; gap:2px; }
 .dashboard-profile-copy strong { overflow:hidden; max-width:105px; color:var(--dash-text); font-size:12px; text-overflow:ellipsis; white-space:nowrap; }
 .dashboard-profile-copy small { color:var(--dash-muted); font-size:9px; }
-.dashboard-profile-chevron { width:14px; color:var(--dash-muted); }
-.dashboard-account-menu { min-width:210px!important; padding:6px!important; border:1px solid #2b2e35!important; border-radius:3px!important; color:#f6f6f4!important; background:#0b0d11!important; box-shadow:0 18px 45px rgba(0,0,0,.34)!important; }
-.dashboard-account-label { padding:9px!important; color:#9599a3!important; font-size:11px!important; }
-.dashboard-account-separator { background:#2b2e35!important; }
-.dashboard-account-item { min-height:38px!important; border-radius:2px!important; color:#f6f6f4!important; text-decoration:none!important; }
-.dashboard-account-item:focus { color:#fff!important; background:#171a22!important; }
-.dashboard-account-logout { color:#ff8e96!important; }
-html[data-kael-theme='light'] .dashboard-account-menu { border-color:#d8d9d5!important; color:#111214!important; background:#fff!important; box-shadow:0 18px 45px rgba(20,22,26,.13)!important; }
-html[data-kael-theme='light'] .dashboard-account-label { color:#646870!important; }
-html[data-kael-theme='light'] .dashboard-account-separator { background:#d8d9d5!important; }
-html[data-kael-theme='light'] .dashboard-account-item { color:#111214!important; }
-html[data-kael-theme='light'] .dashboard-account-item:focus { color:#111214!important; background:#eff0ed!important; }
+.dashboard-profile-chevron { width:14px; color:var(--dash-muted); transition:transform .18s ease; }
+.dashboard-profile-chevron.is-open { transform:rotate(180deg); }
+.dashboard-account-menu { position:absolute; z-index:80; top:calc(100% + 8px); right:0; width:220px; padding:6px; border:1px solid var(--dash-line); border-radius:3px; color:var(--dash-text); background:var(--dash-surface); box-shadow:0 18px 45px rgba(0,0,0,.34); }
+.dashboard-account-label { margin:0; padding:9px; overflow:hidden; color:var(--dash-muted); font-size:11px; font-weight:700; text-overflow:ellipsis; white-space:nowrap; }
+.dashboard-account-separator { height:1px; margin:3px 0; border:0; background:var(--dash-line); }
+.dashboard-account-item { display:flex; min-height:38px; align-items:center; gap:9px; padding:0 9px; border-radius:2px; color:var(--dash-text); font-size:12px; font-weight:700; text-decoration:none; }
+.dashboard-account-item svg { width:16px; }
+.dashboard-account-item:hover,.dashboard-account-item:focus-visible { outline:0; color:var(--dash-text); background:var(--dash-surface-2); }
+.dashboard-account-logout { color:#ff8e96; }
 .dashboard-mobile-sheet { width:min(86vw,320px)!important; padding:24px 18px!important; border-color:#252931!important; border-radius:0!important; color:#f6f6f4!important; background:#08090b!important; }
 .dashboard-mobile-sheet-header { padding:0!important; }
 .dashboard-mobile-sheet-header [data-slot='sheet-description'] { color:#9599a3; font-size:10px; }
