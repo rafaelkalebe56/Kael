@@ -85,7 +85,7 @@ export default function Home() {
     <main className={`kael-page home-${theme}`}>
       <header className="home-nav">
         <a className="home-brand" href="/inicio" aria-label="Kael - início">
-          <Image src="/kael-avatar.webp" alt="" width={48} height={48} priority draggable={false} />
+          <Image src="/kael-avatar.webp" alt="" width={48} height={48} priority unoptimized draggable={false} />
           <span>KAEL</span><i aria-hidden="true" />
         </a>
         <nav className="home-links" aria-label="Navegação principal">
@@ -135,7 +135,7 @@ export default function Home() {
             </div>
           </div>
           <div className={'home-kael ' + (hasEntered ? 'welcome-wave' : '')}>
-            <Image src="/kael-wave.webp" alt="Kael acenando" fill priority sizes="(max-width: 700px) 100vw, (max-width: 1100px) 82vw, 48vw" draggable={false} />
+            <Image src="/kael-wave.webp" alt="Kael acenando" fill priority unoptimized sizes="(max-width: 700px) 100vw, (max-width: 1100px) 82vw, 48vw" draggable={false} />
           </div>
         </div>
       </section>
@@ -159,14 +159,14 @@ export default function Home() {
       </section>
 
       <section className="home-about" id="sobre" aria-labelledby="about-title">
-        <div className="home-about-art"><Image src="/kael-avatar.webp" alt="Retrato do Kael" width={420} height={420} sizes="(max-width: 700px) 300px, 420px" draggable={false} /></div>
+        <div className="home-about-art"><Image src="/kael-avatar.webp" alt="Retrato do Kael" width={420} height={420} unoptimized sizes="(max-width: 700px) 300px, 420px" draggable={false} /></div>
         <div><p>SOBRE O KAEL</p><h2 id="about-title">Feito para comunidades que querem crescer bem.</h2><span>O Kael nasceu para organizar o trabalho da equipe e deixar a experiência da comunidade mais leve. Cada recurso é pensado para ser direto, bonito e fácil de configurar.</span>
           <a href="/api/discord/invite">Adicionar ao Discord <KaelArrowRight /></a>
         </div>
       </section>
 
       <footer className="home-footer">
-        <a className="home-brand" href="#inicio"><Image src="/kael-avatar.webp" alt="" width={38} height={38} draggable={false} /><span>KAEL</span></a>
+        <a className="home-brand" href="#inicio"><Image src="/kael-avatar.webp" alt="" width={38} height={38} unoptimized draggable={false} /><span>KAEL</span></a>
         <p>Feito para cuidar da sua comunidade.</p>
         <span className={`home-live-status is-${serviceStatus.state}`} role="status"><i aria-hidden="true" />{statusLabel}</span>
       </footer>
