@@ -132,10 +132,12 @@ h1 span { color:#5b60ff; }
 .server-card-body { display:grid; grid-template-columns:62px minmax(0,1fr) auto; align-items:center; gap:13px; min-height:102px; padding:18px 18px 18px 22px; }
 .server-icon { display:grid; width:62px; height:62px; place-items:center; overflow:hidden; border:3px solid #111632; border-radius:18px; color:#fff; background:linear-gradient(145deg,#6872ef,#373a99); font-size:24px; font-weight:750; box-shadow:0 5px 15px rgba(0,0,0,.25); transform:translateY(-37px); margin-bottom:-37px; }
 .server-icon img { width:100%; height:100%; object-fit:cover; }
-.server-card-copy { display:flex; min-width:0; flex-direction:column; gap:7px; }
+.server-card-copy { display:flex; min-width:0; flex-direction:column; gap:6px; }
 .server-name { overflow:hidden; color:#f5f6ff; font-size:16px; font-weight:750; text-overflow:ellipsis; white-space:nowrap; }
 .server-status { display:flex; align-items:center; gap:5px; color:#9a9fff; font-size:12px; font-weight:650; }
 .server-status svg { width:14px; }
+.server-members { display:flex; align-items:center; gap:5px; color:#aeb6d8; font-size:12px; font-weight:600; }
+.server-members svg { width:14px; color:#8e96dc; }
 .server-manage { display:inline-flex; align-items:center; gap:7px; color:#dfe1ff; font-size:13px; font-weight:700; white-space:nowrap; }
 .server-manage svg { width:16px; color:#9398ff; transition:transform .2s ease; }
 .server-card:hover .server-manage svg { transform:translateX(3px); }

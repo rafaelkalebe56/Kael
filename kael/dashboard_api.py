@@ -49,6 +49,7 @@ class DashboardApi:
                     "name": guild.name,
                     "icon": str(guild.icon.url) if guild.icon else None,
                     "banner": str(guild.banner.url) if guild.banner else None,
+                    "memberCount": guild.member_count if guild.member_count is not None else len(guild.members),
                 }
             )
 

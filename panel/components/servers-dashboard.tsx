@@ -1,9 +1,9 @@
 'use client';
 
-import { KaelArrowRight, KaelBot, KaelEnter, KaelServer, KaelSpark } from '@/components/kael-icons';
+import { KaelArrowRight, KaelBot, KaelEnter, KaelMembers, KaelServer, KaelSpark } from '@/components/kael-icons';
 import { useEffect, useState } from 'react';
 
-type Guild = { id: string; name: string; icon: string | null; banner: string | null };
+type Guild = { id: string; name: string; icon: string | null; banner: string | null; memberCount?: number };
 type State = 'loading' | 'guest' | 'ready' | 'bot_unavailable' | 'error';
 
 export function ServersDashboard() {
@@ -73,7 +73,7 @@ export function ServersDashboard() {
             <span className="server-icon" aria-hidden="true">
               {guild.icon ? <img src={guild.icon} alt="" draggable={false} /> : guild.name.slice(0, 1).toUpperCase()}
             </span>
-            <span className="server-card-copy"><span className="server-name">{guild.name}</span><span className="server-status"><KaelBot /> Kael está aqui</span></span>
+            <span className="server-card-copy"><span className="server-name">{guild.name}</span><span className="server-status"><KaelBot /> Kael está aqui</span>{typeof guild.memberCount === 'number' && <span className="server-members"><KaelMembers /> {guild.memberCount.toLocaleString('pt-BR')} {guild.memberCount === 1 ? 'membro' : 'membros'}</span>}</span>
             <span className="server-manage">Gerenciar <KaelArrowRight /></span>
           </span>
         </a>
