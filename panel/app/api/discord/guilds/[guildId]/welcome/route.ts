@@ -11,10 +11,11 @@ async function authorize(request: Request, guildId: string) {
   const guilds = await dashboardGuilds(resolution.session);
   if (guilds === null) return { response: Response.json({ error: 'unauthenticated' }, { status: 401, headers }) };
   if (guilds === undefined) return { response: Response.json({ error: 'bot_unavailable' }, { status: 503, headers }) };
-  if (!guilds.some((guild) => guild.id === guildId)) {
+  const guild = guilds.find((item) => item.id === guildId);
+  if (!guild) {
     return { response: Response.json({ error: 'forbidden' }, { status: 403, headers }) };
   }
-  return { headers };
+  return { headers, guild, profile: resolution.session.profile };
 }
 
 async function proxyResponse(response: Response | null, headers: Headers) {
@@ -29,7 +30,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ guil
   const authorization = await authorize(request, guildId);
   if (authorization.response) return authorization.response;
   const response = await kaelDashboardRequest(`/internal/guilds/${guildId}/welcome`);
-  return proxyResponse(response, authorization.headers);
+  if (!response) return Response.json({ error: 'bot_unavailable' }, { status: 503, headers: authorization.headers });
+  if (!response.ok) return proxyResponse(response, authorization.headers);
+  const payload = await response.json() as Record<string, unknown>;
+  return Response.json(
+    { ...payload, guild: authorization.guild, profile: authorization.profile },
+    { headers: authorization.headers },
+  );
 }
 
 export async function PUT(request: Request, { params }: { params: Promise<{ guildId: string }> }) {

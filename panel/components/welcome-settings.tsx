@@ -125,22 +125,14 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
   useEffect(() => {
     let active = true;
     const load = async () => {
-      const guildsResponse = await fetch('/api/discord/guilds', { cache: 'no-store', credentials: 'same-origin' });
-      if (!active) return;
-      if (guildsResponse.status === 401) return setState('guest');
-      if (!guildsResponse.ok) return setState('error');
-
-      // A primeira chamada pode renovar o cookie do Discord. As próximas são
-      // sequenciais para nunca disputar o mesmo refresh token.
       const welcomeResponse = await fetch(`/api/discord/guilds/${guildId}/welcome`, { cache: 'no-store', credentials: 'same-origin' });
       if (!active) return;
       if (welcomeResponse.status === 401) return setState('guest');
       if (welcomeResponse.status === 403) return setState('denied');
       if (!welcomeResponse.ok) return setState('error');
 
-      const guildsData = await guildsResponse.json() as { guilds: Guild[] };
-      const welcomeData = await welcomeResponse.json() as { config: Partial<WelcomeConfig>; channels: Channel[] };
-      const selectedGuild = guildsData.guilds.find((item) => item.id === guildId) ?? null;
+      const welcomeData = await welcomeResponse.json() as { config: Partial<WelcomeConfig>; channels: Channel[]; guild: Guild; profile?: Profile | null };
+      const selectedGuild = welcomeData.guild?.id === guildId ? welcomeData.guild : null;
       if (!selectedGuild) return setState('denied');
       const availableChannels = welcomeData.channels ?? [];
       const loaded = normalizeConfig(welcomeData.config);
@@ -149,8 +141,7 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
       setChannels(availableChannels);
       setConfig(loaded);
       setSavedSnapshot(JSON.stringify(loaded));
-      const profileResponse = await fetch('/api/discord/profile', { cache: 'no-store', credentials: 'same-origin' });
-      if (profileResponse.ok && active) setProfile(await profileResponse.json() as Profile);
+      if (welcomeData.profile) setProfile(welcomeData.profile);
       setState('ready');
     };
     void load().catch(() => active && setState('error'));
