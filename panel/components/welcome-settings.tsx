@@ -32,7 +32,7 @@ type WelcomeConfig = {
   enabled: boolean;
   delivery: Delivery;
   channelId: string | null;
-  format: 'components_v2';
+  format: 'embed';
   title: string;
   message: string;
   authorName: string;
@@ -42,6 +42,7 @@ type WelcomeConfig = {
   bannerUrl: string;
   accentColor: string;
   footer: string;
+  footerIcon: string;
   buttons: WelcomeButton[];
   ignoreBots: boolean;
   delaySeconds: number;
@@ -57,7 +58,7 @@ const defaultConfig: WelcomeConfig = {
   enabled: false,
   delivery: 'channel',
   channelId: null,
-  format: 'components_v2',
+  format: 'embed',
   title: 'Bem-vindo ao servidor!',
   message: initialMessage,
   authorName: 'Kael',
@@ -67,6 +68,7 @@ const defaultConfig: WelcomeConfig = {
   bannerUrl: '',
   accentColor: '#4055FF',
   footer: 'Agora somos {membros} membros.',
+  footerIcon: '',
   buttons: [],
   ignoreBots: true,
   delaySeconds: 1,
@@ -80,7 +82,7 @@ function normalizeConfig(value: Partial<WelcomeConfig>): WelcomeConfig {
     ...defaultConfig,
     ...value,
     buttons: Array.isArray(value.buttons) ? value.buttons.slice(0, 3) : [],
-    format: 'components_v2',
+    format: 'embed',
   };
 }
 
@@ -153,7 +155,7 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
     if (!config.title.trim()) return 'Escreva um título.';
     if (!config.message.trim()) return 'Escreva uma mensagem.';
     if ((config.delivery === 'channel' || config.delivery === 'both') && !selectedChannel) return 'Escolha um canal disponível.';
-    if (!isHttps(config.authorUrl) || !isHttps(config.authorIcon, true) || !isHttps(config.thumbnail, true) || !isHttps(config.bannerUrl)) return 'As URLs precisam começar com https://.';
+    if (!isHttps(config.authorUrl) || !isHttps(config.authorIcon, true) || !isHttps(config.thumbnail, true) || !isHttps(config.bannerUrl) || !isHttps(config.footerIcon, true)) return 'As URLs precisam começar com https://.';
     if (!/^#[0-9A-Fa-f]{6}$/.test(config.accentColor)) return 'Use uma cor no formato #4055FF.';
     if (config.buttons.some((button) => !button.label.trim() || !isHttps(button.url) || !button.url)) return 'Preencha o nome e o link HTTPS de cada botão.';
     return null;
@@ -236,6 +238,7 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
   const renderedTitle = replaceVariables(config.title, guild, profile, selectedChannel);
   const renderedMessage = replaceVariables(config.message, guild, profile, selectedChannel);
   const renderedFooter = replaceVariables(config.footer, guild, profile, selectedChannel);
+  const previewFooterIcon = config.footerIcon === '{membro.avatar}' ? previewAvatar : config.footerIcon;
 
   return (
     <div className="guild-overview welcome-workspace">
@@ -260,7 +263,7 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
         <section className="welcome-setup" aria-label="Destino das boas-vindas">
           <fieldset><legend>Envio</legend><div className="welcome-segmented">{(['channel', 'dm', 'both'] as Delivery[]).map((delivery) => <button type="button" className={config.delivery === delivery ? 'active' : ''} key={delivery} onClick={() => update('delivery', delivery)}>{delivery === 'channel' ? 'Canal' : delivery === 'dm' ? 'DM' : 'Ambos'}</button>)}</div></fieldset>
           <label>Canal<select value={config.channelId ?? ''} disabled={config.delivery === 'dm'} onChange={(event) => update('channelId', event.target.value || null)}><option value="">Escolha um canal</option>{channels.map((channel) => <option key={channel.id} value={channel.id}># {channel.name}</option>)}</select><small>O canal precisa permitir o envio de mensagens.</small></label>
-          <label>Formato<span className="welcome-format-wrap"><select value="components_v2" disabled><option>Components V2</option></select><span title="Somente recursos compatíveis com Components V2 são exibidos."><KaelInfo /></span></span></label>
+          <label>Formato<span className="welcome-format-wrap"><select value="embed" disabled><option>Embed tradicional</option></select><span title="Mensagem em embed tradicional do Discord."><KaelInfo /></span></span></label>
         </section>
 
         <nav className="welcome-tabs" aria-label="Editor de boas-vindas">{([['message', 'Mensagem'], ['appearance', 'Aparência'], ['behavior', 'Comportamento']] as [EditorTab, string][]).map(([key, label]) => <button type="button" className={tab === key ? 'active' : ''} key={key} onClick={() => setTab(key)}>{label}</button>)}<small>Bots ignorados · atraso de {config.delaySeconds}s · antirrepetição {config.deduplicate ? 'ativa' : 'desativada'}</small></nav>
@@ -280,7 +283,7 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
               <h2><KaelImage /> Aparência</h2>
               <div className="welcome-form-section"><h3>Cabeçalho</h3><div className="welcome-form-grid"><label>Nome do autor<input maxLength={256} value={config.authorName} onChange={(event) => update('authorName', event.target.value)} /></label><label>URL do autor<input inputMode="url" placeholder="https://..." value={config.authorUrl} onChange={(event) => update('authorUrl', event.target.value)} /></label><label>Foto do autor<input inputMode="url" placeholder="https://..." value={config.authorIcon} onChange={(event) => update('authorIcon', event.target.value)} /></label></div></div>
               <div className="welcome-form-section"><h3>Imagens e estilo</h3><div className="welcome-form-grid"><label>Thumbnail<input value={config.thumbnail} onChange={(event) => update('thumbnail', event.target.value)} /></label><label>Banner<input inputMode="url" placeholder="https://..." value={config.bannerUrl} onChange={(event) => update('bannerUrl', event.target.value)} /></label><label>Cor lateral<span className="welcome-color-input"><input type="color" value={config.accentColor} onChange={(event) => update('accentColor', event.target.value.toUpperCase())} /><input maxLength={7} value={config.accentColor} onChange={(event) => update('accentColor', event.target.value.toUpperCase())} /></span></label></div><label className="welcome-checkbox"><input type="checkbox" checked={config.fallbackServerIcon} onChange={(event) => update('fallbackServerIcon', event.target.checked)} />Usar o ícone do servidor se a imagem falhar</label></div>
-              <div className="welcome-form-section"><h3>Rodapé e botões</h3><label>Rodapé<input maxLength={2048} value={config.footer} onChange={(event) => update('footer', event.target.value)} /></label><div className="welcome-buttons-editor">{config.buttons.map((button, index) => <div className="welcome-button-row" key={index}><input aria-label={`Nome do botão ${index + 1}`} maxLength={80} placeholder="Nome" value={button.label} onChange={(event) => update('buttons', config.buttons.map((item, itemIndex) => itemIndex === index ? { ...item, label: event.target.value } : item))} /><span className="welcome-url-field"><KaelLink /><input aria-label={`Link do botão ${index + 1}`} placeholder="https://..." value={button.url} onChange={(event) => update('buttons', config.buttons.map((item, itemIndex) => itemIndex === index ? { ...item, url: event.target.value } : item))} /></span><input className="welcome-emoji-field" aria-label={`Emoji do botão ${index + 1}`} placeholder="Emoji" value={button.emoji} onChange={(event) => update('buttons', config.buttons.map((item, itemIndex) => itemIndex === index ? { ...item, emoji: event.target.value } : item))} /><button type="button" aria-label={`Remover botão ${index + 1}`} onClick={() => update('buttons', config.buttons.filter((_, itemIndex) => itemIndex !== index))}><KaelTrash /></button></div>)}<div className="welcome-add-button"><span>{config.buttons.length} de 3 botões</span><button type="button" disabled={config.buttons.length >= 3} onClick={() => update('buttons', [...config.buttons, { label: '', url: '', emoji: '' }])}>+ Adicionar botão</button></div></div></div>
+              <div className="welcome-form-section"><h3>Rodapé e botões</h3><div className="welcome-footer-fields"><label>Rodapé<input maxLength={2048} value={config.footer} onChange={(event) => update('footer', event.target.value)} /></label><label>Imagem do rodapé<input inputMode="url" placeholder="https://... ou {membro.avatar}" value={config.footerIcon} onChange={(event) => update('footerIcon', event.target.value)} /></label></div><div className="welcome-buttons-editor">{config.buttons.map((button, index) => <div className="welcome-button-row" key={index}><input aria-label={`Nome do botão ${index + 1}`} maxLength={80} placeholder="Nome" value={button.label} onChange={(event) => update('buttons', config.buttons.map((item, itemIndex) => itemIndex === index ? { ...item, label: event.target.value } : item))} /><span className="welcome-url-field"><KaelLink /><input aria-label={`Link do botão ${index + 1}`} placeholder="https://..." value={button.url} onChange={(event) => update('buttons', config.buttons.map((item, itemIndex) => itemIndex === index ? { ...item, url: event.target.value } : item))} /></span><input className="welcome-emoji-field" aria-label={`Emoji do botão ${index + 1}`} placeholder="Emoji" value={button.emoji} onChange={(event) => update('buttons', config.buttons.map((item, itemIndex) => itemIndex === index ? { ...item, emoji: event.target.value } : item))} /><button type="button" aria-label={`Remover botão ${index + 1}`} onClick={() => update('buttons', config.buttons.filter((_, itemIndex) => itemIndex !== index))}><KaelTrash /></button></div>)}<div className="welcome-add-button"><span>{config.buttons.length} de 3 botões</span><button type="button" disabled={config.buttons.length >= 3} onClick={() => update('buttons', [...config.buttons, { label: '', url: '', emoji: '' }])}>+ Adicionar botão</button></div></div></div>
             </div>}
 
             {tab === 'behavior' && <div className="welcome-tab-panel">
@@ -300,7 +303,7 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
               <div className="welcome-preview-author"><Image src={config.authorIcon === '{membro.avatar}' ? previewAvatar : (config.authorIcon || '/kael-avatar.webp')} alt="" width={36} height={36} unoptimized draggable={false} /><span>{config.authorName || 'Kael'}</span></div>
               <div className="welcome-preview-copy"><span><strong>{renderedTitle}</strong><p>{renderedMessage}</p></span>{previewThumbnail && <Image src={previewThumbnail} alt="" width={58} height={58} unoptimized draggable={false} />}</div>
               {previewBanner && <span className="welcome-preview-banner"><Image src={previewBanner} alt="" fill unoptimized draggable={false} onError={() => setFailedBannerUrl(config.bannerUrl || previewBanner)} /></span>}
-              {renderedFooter && <small className="welcome-preview-footer">{renderedFooter}</small>}
+              {renderedFooter && <small className="welcome-preview-footer">{previewFooterIcon && <Image src={previewFooterIcon} alt="" width={20} height={20} unoptimized draggable={false} />}{renderedFooter}</small>}
               {config.buttons.length > 0 && <div className="welcome-preview-buttons">{config.buttons.map((button, index) => <a key={index} href={button.url || '#'} onClick={(event) => event.preventDefault()}>{button.emoji && <span>{button.emoji}</span>}{button.label || `Botão ${index + 1}`}</a>)}</div>}
             </div>
             <div className="welcome-test-row"><button type="button" onClick={() => void sendTest()} disabled={testing || Boolean(validationError)}><KaelSend /> {testing ? 'Enviando...' : 'Enviar teste'}</button><select value={testTarget} onChange={(event) => setTestTarget(event.target.value as 'self' | 'channel')}><option value="self">Somente para mim</option><option value="channel">No canal escolhido</option></select></div>

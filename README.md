@@ -1,5 +1,7 @@
 # Kael
 
+Versão atual: **1.1.1**
+
 Kael é um bot modular para comunidades no Discord. Esta primeira base inclui
 configuração segura, banco separado por servidor e o comando `/status`.
 
@@ -16,7 +18,8 @@ PainelKael. A comunicação ocorre pela rede privada da Railway.
 
 ## Padrões de interface
 
-- Mensagens novas usam **Discord Components v2**, não embeds.
+- Comandos e avisos do sistema usam **Discord Components v2**.
+- O sistema de boas-vindas usa embeds tradicionais, com prévia e personalização pelo painel.
 - Emojis serão próprios da marca Kael; não usamos pacotes de emojis prontos.
 
 ## Rodar localmente

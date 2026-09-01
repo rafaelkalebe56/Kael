@@ -10,7 +10,7 @@ DEFAULT_WELCOME_SETTINGS: dict[str, Any] = {
     "enabled": False,
     "delivery": "channel",
     "channelId": None,
-    "format": "components_v2",
+    "format": "embed",
     "title": "Bem-vindo ao servidor!",
     "message": "Olá, {membro}! Que bom ter você no {servidor}.\nAgora somos {membros} membros.",
     "authorName": "Kael",
@@ -20,6 +20,7 @@ DEFAULT_WELCOME_SETTINGS: dict[str, Any] = {
     "bannerUrl": "",
     "accentColor": "#4055FF",
     "footer": "Agora somos {membros} membros.",
+    "footerIcon": "",
     "buttons": [],
     "ignoreBots": True,
     "delaySeconds": 1,
@@ -86,6 +87,7 @@ class Database:
 
         settings["enabled"] = bool(row["welcome_enabled"])
         settings["channelId"] = row["welcome_channel_id"]
+        settings["format"] = "embed"
         settings["buttons"] = list(settings.get("buttons") or [])
         return settings
 

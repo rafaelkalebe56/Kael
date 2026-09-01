@@ -7,7 +7,6 @@ from typing import Any, Mapping
 from urllib.parse import urlparse
 
 import discord
-from discord import components
 
 from kael.database import DEFAULT_WELCOME_SETTINGS
 
@@ -60,7 +59,7 @@ def validate_welcome_settings(payload: Any, valid_channel_ids: set[str]) -> dict
     if settings["delivery"] in {"channel", "both"} and settings["channelId"] not in valid_channel_ids:
         raise WelcomeValidationError("Escolha um canal em que o Kael possa enviar mensagens.")
 
-    settings["format"] = "components_v2"
+    settings["format"] = "embed"
     settings["title"] = _text(payload.get("title"), 256, DEFAULT_WELCOME_SETTINGS["title"])
     settings["message"] = _text(payload.get("message"), 2000, DEFAULT_WELCOME_SETTINGS["message"])
     if not settings["title"] or not settings["message"]:
@@ -77,6 +76,7 @@ def validate_welcome_settings(payload: Any, valid_channel_ids: set[str]) -> dict
         raise WelcomeValidationError("Use uma cor no formato #4055FF.")
     settings["accentColor"] = accent
     settings["footer"] = _text(payload.get("footer"), 2048)
+    settings["footerIcon"] = _https_url(payload.get("footerIcon"), allow_member_avatar=True)
 
     raw_buttons = payload.get("buttons")
     if not isinstance(raw_buttons, list):
@@ -137,34 +137,34 @@ def _media_url(value: str, member: discord.abc.User, guild: discord.Guild, fallb
     return None
 
 
-def build_welcome_view(settings: Mapping[str, Any], member: discord.abc.User, guild: discord.Guild, channel: discord.abc.GuildChannel | None) -> discord.ui.LayoutView:
+def build_welcome_embed(
+    settings: Mapping[str, Any],
+    member: discord.abc.User,
+    guild: discord.Guild,
+    channel: discord.abc.GuildChannel | None,
+) -> tuple[discord.Embed, discord.ui.View | None]:
     accent = int(str(settings["accentColor"]).lstrip("#"), 16)
-    container = discord.ui.Container(accent_colour=accent)
+    title = render_welcome_text(str(settings["title"]), member, guild, channel)
+    message = render_welcome_text(str(settings["message"]), member, guild, channel)
+    embed = discord.Embed(title=title, description=message, colour=accent)
 
-    author_name = render_welcome_text(str(settings.get("authorName") or "Kael"), member, guild, channel)
-    author_url = str(settings.get("authorUrl") or "")
-    author_text = f"[{author_name}]({author_url})" if author_url else author_name
+    author_name = render_welcome_text(
+        str(settings.get("authorName") or "Kael"), member, guild, channel
+    )
+    author_url = str(settings.get("authorUrl") or "") or None
     author_icon = _media_url(str(settings.get("authorIcon") or ""), member, guild, False)
     if not author_icon and guild.me and guild.me.display_avatar:
         author_icon = str(guild.me.display_avatar.url)
-    if author_icon:
-        container.add_item(discord.ui.Section(discord.ui.TextDisplay(author_text), accessory=discord.ui.Thumbnail(author_icon)))
-    else:
-        container.add_item(discord.ui.TextDisplay(author_text))
+    embed.set_author(name=author_name, url=author_url, icon_url=author_icon)
 
-    title = render_welcome_text(str(settings["title"]), member, guild, channel)
-    message = render_welcome_text(str(settings["message"]), member, guild, channel)
     thumbnail = _media_url(
         str(settings.get("thumbnail") or ""),
         member,
         guild,
         bool(settings.get("fallbackServerIcon")),
     )
-    content = discord.ui.TextDisplay(f"## {title}\n{message}")
     if thumbnail:
-        container.add_item(discord.ui.Section(content, accessory=discord.ui.Thumbnail(thumbnail)))
-    else:
-        container.add_item(content)
+        embed.set_thumbnail(url=thumbnail)
 
     banner_url = _media_url(
         str(settings.get("bannerUrl") or ""),
@@ -173,19 +173,25 @@ def build_welcome_view(settings: Mapping[str, Any], member: discord.abc.User, gu
         bool(settings.get("fallbackServerIcon")),
     )
     if banner_url:
-        container.add_item(discord.ui.MediaGallery(components.MediaGalleryItem(banner_url, description=f"Boas-vindas ao {guild.name}")))
+        embed.set_image(url=banner_url)
 
     footer = render_welcome_text(str(settings.get("footer") or ""), member, guild, channel)
+    footer_icon = _media_url(
+        str(settings.get("footerIcon") or ""),
+        member,
+        guild,
+        bool(settings.get("fallbackServerIcon")),
+    )
     if footer:
-        container.add_item(discord.ui.Separator(visible=True, spacing=discord.SeparatorSpacing.small))
-        container.add_item(discord.ui.TextDisplay(f"-# {footer}"))
+        embed.set_footer(text=footer, icon_url=footer_icon)
 
     buttons = settings.get("buttons") or []
+    view: discord.ui.View | None = None
     if buttons:
-        action_row = discord.ui.ActionRow()
+        view = discord.ui.View(timeout=None)
         for button in buttons[:3]:
             try:
-                action_row.add_item(
+                view.add_item(
                     discord.ui.Button(
                         style=discord.ButtonStyle.link,
                         label=button["label"],
@@ -194,14 +200,10 @@ def build_welcome_view(settings: Mapping[str, Any], member: discord.abc.User, gu
                     )
                 )
             except (TypeError, ValueError):
-                action_row.add_item(
+                view.add_item(
                     discord.ui.Button(style=discord.ButtonStyle.link, label=button["label"], url=button["url"])
                 )
-        container.add_item(action_row)
-
-    view = discord.ui.LayoutView(timeout=None)
-    view.add_item(container)
-    return view
+    return embed, view
 
 
 async def send_welcome(
@@ -221,16 +223,20 @@ async def send_welcome(
     if delivery in {"channel", "both"}:
         if not isinstance(channel, discord.abc.Messageable):
             raise WelcomeValidationError("O canal configurado não está mais disponível.")
+        embed, view = build_welcome_embed(settings, member, guild, channel)
         await channel.send(
-            view=build_welcome_view(settings, member, guild, channel),
+            embed=embed,
+            view=view,
             allowed_mentions=allowed_mentions,
             delete_after=delete_after,
         )
 
     if delivery in {"dm", "both", "self"}:
         recipient = dm_user or member
+        embed, view = build_welcome_embed(settings, member, guild, channel)
         await recipient.send(
-            view=build_welcome_view(settings, member, guild, channel),
+            embed=embed,
+            view=view,
             allowed_mentions=allowed_mentions,
             delete_after=delete_after,
         )

@@ -463,6 +463,8 @@ html[data-kael-theme='light'] .dashboard-mobile-sheet { border-color:#d8d9d5!imp
 .welcome-form-section:first-of-type { padding-top:0; border-top:0; }
 .welcome-form-section h3 { margin:0 0 4px; color:var(--dash-text); font-size:11px; }
 .welcome-form-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+.welcome-footer-fields { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(0,.75fr); gap:8px; }
+.welcome-footer-fields > label { display:block; margin-top:11px; color:var(--dash-muted); font-size:10px; }
 .welcome-color-input { display:grid; grid-template-columns:38px 1fr; gap:5px; }
 .welcome-color-input input[type='color'] { padding:4px; }
 .welcome-checkbox { display:flex!important; align-items:center; gap:8px; }
@@ -497,7 +499,8 @@ html[data-kael-theme='light'] .dashboard-mobile-sheet { border-color:#d8d9d5!imp
 .welcome-preview-copy > img { width:54px; height:54px; flex:0 0 auto; border-radius:50%; object-fit:cover; }
 .welcome-preview-banner { display:block; position:relative; height:128px; margin-top:12px; overflow:hidden; border:1px solid var(--dash-line); border-radius:2px; background:var(--dash-bg); }
 .welcome-preview-banner img { width:100%; height:100%; object-fit:cover; }
-.welcome-preview-footer { display:block; margin-top:10px; padding-top:9px; border-top:1px solid var(--dash-line); color:var(--dash-muted); font-size:9px; }
+.welcome-preview-footer { display:flex; align-items:center; gap:7px; margin-top:10px; padding-top:9px; border-top:1px solid var(--dash-line); color:var(--dash-muted); font-size:9px; }
+.welcome-preview-footer img { width:18px; height:18px; border-radius:50%; object-fit:cover; }
 .welcome-preview-buttons { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
 .welcome-preview-buttons a { display:inline-flex; min-height:32px; align-items:center; gap:6px; padding:0 10px; border:1px solid var(--dash-accent); border-radius:2px; color:var(--dash-accent); background:transparent; font-size:9px; font-weight:750; text-decoration:none; }
 .welcome-test-row { display:grid; grid-template-columns:auto minmax(130px,180px); gap:6px; margin-top:9px; }
@@ -529,6 +532,7 @@ html[data-kael-theme='light'] .dashboard-mobile-sheet { border-color:#d8d9d5!imp
   .welcome-setup > label:last-child { grid-column:1/-1; border-top:1px solid var(--dash-line); }
   .welcome-tabs small { display:none; }
   .welcome-form-grid { grid-template-columns:1fr; }
+  .welcome-footer-fields { grid-template-columns:1fr; }
 }
 @media (max-width:760px) {
   .welcome-main { padding:0 12px 18px; }
