@@ -47,6 +47,7 @@ type BotConfiguration = {
 
 export type KaelServiceStatus = {
   state: 'online' | 'starting' | 'offline';
+  version: string | null;
   guildCount: number | null;
   memberCount: number | null;
   latencyMs: number | null;
@@ -484,7 +485,7 @@ async function kaelGuilds(): Promise<DiscordGuild[] | null> {
 
 export async function kaelServiceStatus(): Promise<KaelServiceStatus> {
   const configuration = getBotConfiguration();
-  const offline: KaelServiceStatus = { state: 'offline', guildCount: null, memberCount: null, latencyMs: null };
+  const offline: KaelServiceStatus = { state: 'offline', version: null, guildCount: null, memberCount: null, latencyMs: null };
   if (!configuration) return offline;
 
   try {
@@ -499,6 +500,7 @@ export async function kaelServiceStatus(): Promise<KaelServiceStatus> {
     const ready = payload.ready === true;
     return {
       state: ready ? 'online' : 'starting',
+      version: typeof payload.version === 'string' ? payload.version : null,
       guildCount: ready && typeof payload.guildCount === 'number' && Number.isFinite(payload.guildCount) ? payload.guildCount : null,
       memberCount: ready && typeof payload.memberCount === 'number' && Number.isFinite(payload.memberCount) ? payload.memberCount : null,
       latencyMs: ready && typeof payload.latencyMs === 'number' && Number.isFinite(payload.latencyMs) ? payload.latencyMs : null,

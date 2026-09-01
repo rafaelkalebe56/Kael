@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 import discord
 from aiohttp import web
 
+from kael import __version__
 from kael.welcome import WelcomeValidationError, send_welcome, validate_welcome_settings
 
 if TYPE_CHECKING:
@@ -60,6 +61,7 @@ class DashboardApi:
         return web.json_response(
             {
                 "ready": ready,
+                "version": __version__,
                 "guildCount": guild_count,
                 "memberCount": member_count,
                 "latencyMs": round(latency * 1000) if ready and math.isfinite(latency) else None,
