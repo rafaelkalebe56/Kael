@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { KaelArrowLeft, KaelConstruct, KaelEnter, KaelRefresh, KaelShield } from '@/components/kael-icons';
+import { KaelArrowLeft, KaelConstruct, KaelEnter, KaelGrid, KaelMembers, KaelRefresh, KaelShield } from '@/components/kael-icons';
 import { useEffect, useState } from 'react';
 
 type Guild = { id: string; name: string; icon: string | null; banner: string | null; memberCount?: number };
@@ -42,17 +42,46 @@ export function GuildUnderConstruction({ guildId }: { guildId: string }) {
   }
 
   return (
-    <div className="guild-construction">
-      <div className="guild-construction-banner" aria-hidden="true">
-        {guild?.banner ? <img src={guild.banner} alt="" draggable={false} /> : guild?.icon ? <img className="server-banner-icon-bg" src={guild.icon} alt="" draggable={false} /> : null}
-      </div>
-      <div className="guild-construction-content">
-        <span className="construction-icon"><KaelConstruct /></span>
-        <p className="panel-kicker">PAINEL DO SERVIDOR</p>
-        <h1>{guild?.name ?? 'Sua comunidade'}</h1>
-        <h2>Estamos criando essa aba.</h2>
-        <p>Não se preocupe, será rápido. Suas permissões já foram confirmadas com segurança.</p>
-        <Link className="panel-secondary-link" href="/servidores"><KaelArrowLeft /> Voltar aos servidores</Link>
+    <div className="guild-overview">
+      <aside className="guild-overview-nav" aria-label="Seções do servidor">
+        <Link className="guild-overview-back" href="/servidores"><KaelArrowLeft /> Servidores</Link>
+        <span className="guild-overview-nav-item active"><KaelGrid /> Visão geral</span>
+      </aside>
+
+      <div className="guild-overview-main">
+        <section className="guild-overview-hero" aria-labelledby="guild-title">
+          <div className="guild-overview-banner" aria-hidden="true">
+            {guild?.banner ? <Image src={guild.banner} alt="" fill sizes="(max-width: 760px) 100vw, 75vw" unoptimized draggable={false} /> : guild?.icon ? <Image className="guild-overview-banner-fallback-image" src={guild.icon} alt="" fill sizes="(max-width: 760px) 100vw, 75vw" unoptimized draggable={false} /> : <span className="guild-overview-banner-empty" />}
+          </div>
+          <div className="guild-overview-identity">
+            <span className="guild-overview-icon" aria-hidden="true">
+              {guild?.icon ? <Image src={guild.icon} alt="" width={128} height={128} unoptimized draggable={false} /> : (guild?.name ?? 'K').slice(0, 1).toUpperCase()}
+            </span>
+            <div className="guild-overview-title">
+              <h1 id="guild-title">{guild?.name ?? 'Sua comunidade'}</h1>
+              <div className="guild-overview-meta">
+                {typeof guild?.memberCount === 'number' && <span><KaelMembers /> {guild.memberCount.toLocaleString('pt-BR')} {guild.memberCount === 1 ? 'membro' : 'membros'}</span>}
+                <span className="guild-overview-online"><i /> Kael conectado</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div className="guild-overview-grid">
+          <section className="guild-development-card" aria-labelledby="development-title">
+            <span className="guild-development-icon"><KaelConstruct /></span>
+            <h2 id="development-title">Esta área está em desenvolvimento</h2>
+            <p>Estamos preparando as próximas configurações do Kael. Não se preocupe, será rápido.</p>
+            <span className="guild-development-status">Em breve</span>
+          </section>
+
+          <section className="guild-permissions-card" aria-labelledby="permissions-title">
+            <h2 id="permissions-title">Permissões</h2>
+            <span className="guild-permissions-icon"><KaelShield /></span>
+            <strong>Tudo certo</strong>
+            <p>Seu acesso ao painel e a conexão do Kael foram confirmados com segurança.</p>
+          </section>
+        </div>
       </div>
     </div>
   );
