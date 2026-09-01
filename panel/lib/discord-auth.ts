@@ -25,6 +25,7 @@ export type DiscordSessionResolution = {
 };
 
 export type DiscordProfile = {
+  id: string;
   displayName: string;
   avatarUrl: string | null;
 };
@@ -175,7 +176,7 @@ async function decryptSession(value: string, secret: string): Promise<DiscordSes
       refreshToken: typeof parsed.refreshToken === 'string' ? parsed.refreshToken : null,
       expiresAt: parsed.expiresAt,
       profile: parsed.profile && typeof parsed.profile.displayName === 'string'
-        ? { displayName: parsed.profile.displayName, avatarUrl: typeof parsed.profile.avatarUrl === 'string' ? parsed.profile.avatarUrl : null }
+        ? { id: typeof parsed.profile.id === 'string' ? parsed.profile.id : '', displayName: parsed.profile.displayName, avatarUrl: typeof parsed.profile.avatarUrl === 'string' ? parsed.profile.avatarUrl : null }
         : null,
     };
   } catch {
@@ -215,6 +216,7 @@ async function fetchDiscordProfile(accessToken: string): Promise<DiscordProfile 
     const user = await response.json() as { id?: string; username?: string; global_name?: string | null; avatar?: string | null };
     if (!user.id || !user.username) return null;
     return {
+      id: user.id,
       displayName: user.global_name || user.username,
       avatarUrl: user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128` : null,
     };
@@ -389,7 +391,29 @@ export async function getDiscordSession(request: Request) {
 export async function getDiscordProfile(request: Request) {
   const session = await getDiscordSession(request);
   if (!session) return null;
-  return session.profile ?? fetchDiscordProfile(session.accessToken);
+  return session.profile?.id ? session.profile : fetchDiscordProfile(session.accessToken);
+}
+
+export async function kaelDashboardRequest(path: string, init?: RequestInit): Promise<Response | null> {
+  const configuration = getBotConfiguration();
+  if (!configuration || !path.startsWith('/internal/')) return null;
+  try {
+    return await fetch(new URL(path, configuration.baseUrl), {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${configuration.apiKey}`,
+        ...(init?.headers ?? {}),
+      },
+      redirect: 'manual',
+      signal: AbortSignal.timeout(8_000),
+    });
+  } catch (error) {
+    console.error('PainelKael: falha na API privada.', {
+      path,
+      message: error instanceof Error ? error.message : 'erro desconhecido',
+    });
+    return null;
+  }
 }
 
 export async function managedGuilds(session: DiscordSession): Promise<DiscordGuild[] | null> {

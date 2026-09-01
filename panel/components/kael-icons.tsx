@@ -31,3 +31,11 @@ export function KaelSearch(props: IconProps) { return <Icon {...props}><circle c
 export function KaelRefresh(props: IconProps) { return <Icon {...props}><path d="M19 8V4l-2 2a8 8 0 1 0 2.1 8" /><path d="M19 4h-4" /></Icon>; }
 export function KaelMenu(props: IconProps) { return <Icon {...props}><path d="M4 7h16M4 12h16M4 17h16" /></Icon>; }
 export function KaelChevronDown(props: IconProps) { return <Icon {...props}><path d="m6 9 6 6 6-6" /></Icon>; }
+export function KaelWelcome(props: IconProps) { return <Icon {...props}><path d="M7 12V7.5a1.5 1.5 0 0 1 3 0V11M10 10V5.5a1.5 1.5 0 0 1 3 0V10M13 10V6.5a1.5 1.5 0 0 1 3 0V12M16 11V9a1.5 1.5 0 0 1 3 0v5c0 4-2.7 7-7 7-3.5 0-5.7-1.7-7.5-4.5l-1.1-1.8a1.5 1.5 0 0 1 2.3-1.9L8 15" /></Icon>; }
+export function KaelSend(props: IconProps) { return <Icon {...props}><path d="m3 4 18 8-18 8 3-8-3-8Z" /><path d="M6 12h9" /></Icon>; }
+export function KaelCheck(props: IconProps) { return <Icon {...props}><path d="m5 12 4 4L19 6" /></Icon>; }
+export function KaelSave(props: IconProps) { return <Icon {...props}><path d="M4 4h13l3 3v13H4V4Z" /><path d="M8 4v6h8V4M8 20v-6h8v6" /></Icon>; }
+export function KaelTrash(props: IconProps) { return <Icon {...props}><path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5" /></Icon>; }
+export function KaelLink(props: IconProps) { return <Icon {...props}><path d="M9.5 14.5 14.5 9M7 17H6a4 4 0 0 1 0-8h3M17 7h1a4 4 0 0 1 0 8h-3" /></Icon>; }
+export function KaelMessage(props: IconProps) { return <Icon {...props}><path d="M4 5h16v12H9l-5 4V5Z" /><path d="M8 9h8M8 13h5" /></Icon>; }
+export function KaelImage(props: IconProps) { return <Icon {...props}><rect x="4" y="4" width="16" height="16" /><circle cx="9" cy="9" r="2" /><path d="m5 18 5-5 3 3 2-2 4 4" /></Icon>; }

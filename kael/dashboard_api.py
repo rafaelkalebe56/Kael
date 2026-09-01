@@ -5,7 +5,10 @@ import logging
 import math
 from typing import TYPE_CHECKING
 
+import discord
 from aiohttp import web
+
+from kael.welcome import WelcomeValidationError, send_welcome, validate_welcome_settings
 
 if TYPE_CHECKING:
     from kael.bot import KaelBot
@@ -21,9 +24,12 @@ class DashboardApi:
         self._runner: web.AppRunner | None = None
 
     async def start(self) -> None:
-        app = web.Application()
+        app = web.Application(client_max_size=64 * 1024)
         app.router.add_get("/internal/status", self.status)
         app.router.add_get("/internal/guilds", self.guilds)
+        app.router.add_get("/internal/guilds/{guild_id}/welcome", self.get_welcome)
+        app.router.add_put("/internal/guilds/{guild_id}/welcome", self.put_welcome)
+        app.router.add_post("/internal/guilds/{guild_id}/welcome/test", self.test_welcome)
         self._runner = web.AppRunner(app, access_log=None)
         await self._runner.setup()
         await web.TCPSite(self._runner, host="0.0.0.0", port=self.port).start()
@@ -78,3 +84,80 @@ class DashboardApi:
 
         logging.getLogger(__name__).info("PainelKael consultou %s servidores do Kael", len(guilds))
         return web.json_response({"guilds": sorted(guilds, key=lambda guild: guild["name"].lower())})
+
+    def _guild(self, request: web.Request):
+        try:
+            guild_id = int(request.match_info["guild_id"])
+        except (KeyError, ValueError):
+            return None
+        return self.bot.get_guild(guild_id)
+
+    @staticmethod
+    def _channels(guild):
+        return [
+            {"id": str(channel.id), "name": channel.name}
+            for channel in guild.text_channels
+            if channel.permissions_for(guild.me).send_messages
+        ]
+
+    async def get_welcome(self, request: web.Request) -> web.Response:
+        if not self.is_authorized(request):
+            return web.json_response({"error": "unauthorized"}, status=401)
+        guild = self._guild(request)
+        if guild is None:
+            return web.json_response({"error": "guild_not_found"}, status=404)
+        return web.json_response(
+            {
+                "config": self.bot.database.get_welcome_settings(guild.id),
+                "channels": self._channels(guild),
+            }
+        )
+
+    async def put_welcome(self, request: web.Request) -> web.Response:
+        if not self.is_authorized(request):
+            return web.json_response({"error": "unauthorized"}, status=401)
+        guild = self._guild(request)
+        if guild is None:
+            return web.json_response({"error": "guild_not_found"}, status=404)
+        try:
+            payload = await request.json()
+            channels = self._channels(guild)
+            config = validate_welcome_settings(payload, {channel["id"] for channel in channels})
+        except (WelcomeValidationError, ValueError, TypeError) as error:
+            return web.json_response({"error": "invalid_config", "message": str(error)}, status=400)
+        self.bot.database.save_welcome_settings(guild.id, config)
+        return web.json_response({"config": config})
+
+    async def test_welcome(self, request: web.Request) -> web.Response:
+        if not self.is_authorized(request):
+            return web.json_response({"error": "unauthorized"}, status=401)
+        guild = self._guild(request)
+        if guild is None:
+            return web.json_response({"error": "guild_not_found"}, status=404)
+        try:
+            payload = await request.json()
+            channels = self._channels(guild)
+            config = validate_welcome_settings(payload.get("config"), {channel["id"] for channel in channels})
+            target = payload.get("target")
+            if target not in {"channel", "self"}:
+                raise WelcomeValidationError("Destino de teste inválido.")
+            user_id = int(payload.get("userId"))
+            member = guild.get_member(user_id)
+            user = member or await self.bot.fetch_user(user_id)
+            await send_welcome(
+                self.bot,
+                guild,
+                user,
+                config,
+                target_override="channel" if target == "channel" else "self",
+                dm_user=user,
+            )
+        except WelcomeValidationError as error:
+            return web.json_response({"error": "invalid_config", "message": str(error)}, status=400)
+        except (discord.Forbidden, discord.HTTPException, ValueError, TypeError):
+            logging.getLogger(__name__).exception("Falha ao enviar teste de boas-vindas em %s", guild.id)
+            return web.json_response(
+                {"error": "test_failed", "message": "O Discord não aceitou o envio. Confira o canal e as permissões."},
+                status=502,
+            )
+        return web.json_response({"ok": True})

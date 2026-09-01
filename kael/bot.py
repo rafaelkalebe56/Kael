@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 
 import discord
 from discord.ext import commands
@@ -8,6 +9,7 @@ from discord.ext import commands
 from kael.config import Settings
 from kael.database import Database
 from kael.dashboard_api import DashboardApi
+from kael.welcome import send_configured_welcome
 
 
 class KaelBot(commands.Bot):
@@ -18,6 +20,7 @@ class KaelBot(commands.Bot):
         super().__init__(command_prefix="!", intents=intents)
         self.settings = settings
         self.database = Database(settings.database_path)
+        self._recent_welcome_events: dict[tuple[int, int], float] = {}
         self.dashboard_api = (
             DashboardApi(self, settings.dashboard_api_key, settings.dashboard_api_port)
             if settings.dashboard_api_key
@@ -44,6 +47,25 @@ class KaelBot(commands.Bot):
 
     async def on_guild_join(self, guild: discord.Guild) -> None:
         self.database.ensure_guild(guild.id)
+
+    async def on_member_join(self, member: discord.Member) -> None:
+        settings = self.database.get_welcome_settings(member.guild.id)
+        event_key = (member.guild.id, member.id)
+        now = time.monotonic()
+        if settings.get("deduplicate") and now - self._recent_welcome_events.get(event_key, 0) < 300:
+            return
+        self._recent_welcome_events[event_key] = now
+        if len(self._recent_welcome_events) > 10_000:
+            cutoff = now - 600
+            self._recent_welcome_events = {
+                key: timestamp for key, timestamp in self._recent_welcome_events.items() if timestamp >= cutoff
+            }
+        try:
+            await send_configured_welcome(self, member, settings)
+        except (discord.HTTPException, discord.Forbidden, ValueError):
+            logging.getLogger(__name__).exception(
+                "Não foi possível enviar as boas-vindas no servidor %s", member.guild.id
+            )
 
     async def close(self) -> None:
         if self.dashboard_api is not None:

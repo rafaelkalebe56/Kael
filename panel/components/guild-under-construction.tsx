@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { KaelArrowLeft, KaelConstruct, KaelEnter, KaelGrid, KaelMembers, KaelRefresh, KaelShield } from '@/components/kael-icons';
+import { KaelArrowLeft, KaelConstruct, KaelEnter, KaelGrid, KaelMembers, KaelRefresh, KaelShield, KaelWelcome } from '@/components/kael-icons';
 import { useEffect, useState } from 'react';
 
 type Guild = { id: string; name: string; icon: string | null; banner: string | null; memberCount?: number };
@@ -46,6 +46,7 @@ export function GuildUnderConstruction({ guildId }: { guildId: string }) {
       <aside className="guild-overview-nav" aria-label="Seções do servidor">
         <Link className="guild-overview-back" href="/servidores"><KaelArrowLeft /> Servidores</Link>
         <span className="guild-overview-nav-item active"><KaelGrid /> Visão geral</span>
+        <Link className="guild-overview-nav-item" href={`/servidores/${guildId}/boas-vindas`}><KaelWelcome /> Boas-vindas</Link>
       </aside>
 
       <div className="guild-overview-main">
