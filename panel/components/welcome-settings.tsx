@@ -244,7 +244,7 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
     <div className="guild-overview welcome-workspace">
       <aside className="guild-overview-nav" aria-label="Seções do servidor">
         <Link className="guild-overview-back" href="/servidores"><KaelArrowLeft /> Servidores</Link>
-        <Link className="guild-overview-nav-item" href={`/servidores/${guildId}`}><KaelGrid /> Visão geral</Link>
+        <a className="guild-overview-nav-item" href={`/servidores/${guildId}`}><KaelGrid /> Visão geral</a>
         <span className="guild-overview-nav-item active"><KaelWelcome /> Boas-vindas</span>
       </aside>
 

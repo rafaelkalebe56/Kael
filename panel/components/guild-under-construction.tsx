@@ -46,7 +46,7 @@ export function GuildUnderConstruction({ guildId }: { guildId: string }) {
       <aside className="guild-overview-nav" aria-label="Seções do servidor">
         <Link className="guild-overview-back" href="/servidores"><KaelArrowLeft /> Servidores</Link>
         <span className="guild-overview-nav-item active"><KaelGrid /> Visão geral</span>
-        <Link className="guild-overview-nav-item" href={`/servidores/${guildId}/boas-vindas`}><KaelWelcome /> Boas-vindas</Link>
+        <a className="guild-overview-nav-item" href={`/servidores/${guildId}/boas-vindas`}><KaelWelcome /> Boas-vindas</a>
       </aside>
 
       <div className="guild-overview-main">
