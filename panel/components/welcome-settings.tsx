@@ -119,20 +119,25 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testTarget, setTestTarget] = useState<'self' | 'channel'>('self');
-  const [bannerFailed, setBannerFailed] = useState(false);
+  const [failedBannerUrl, setFailedBannerUrl] = useState<string | null>(null);
   const messageRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     let active = true;
-    Promise.all([
-      fetch('/api/discord/guilds', { cache: 'no-store' }),
-      fetch(`/api/discord/guilds/${guildId}/welcome`, { cache: 'no-store' }),
-      fetch('/api/discord/profile', { cache: 'no-store' }),
-    ]).then(async ([guildsResponse, welcomeResponse, profileResponse]) => {
+    const load = async () => {
+      const guildsResponse = await fetch('/api/discord/guilds', { cache: 'no-store', credentials: 'same-origin' });
       if (!active) return;
-      if (guildsResponse.status === 401 || welcomeResponse.status === 401) return setState('guest');
+      if (guildsResponse.status === 401) return setState('guest');
+      if (!guildsResponse.ok) return setState('error');
+
+      // A primeira chamada pode renovar o cookie do Discord. As próximas são
+      // sequenciais para nunca disputar o mesmo refresh token.
+      const welcomeResponse = await fetch(`/api/discord/guilds/${guildId}/welcome`, { cache: 'no-store', credentials: 'same-origin' });
+      if (!active) return;
+      if (welcomeResponse.status === 401) return setState('guest');
       if (welcomeResponse.status === 403) return setState('denied');
-      if (!guildsResponse.ok || !welcomeResponse.ok) return setState('error');
+      if (!welcomeResponse.ok) return setState('error');
+
       const guildsData = await guildsResponse.json() as { guilds: Guild[] };
       const welcomeData = await welcomeResponse.json() as { config: Partial<WelcomeConfig>; channels: Channel[] };
       const selectedGuild = guildsData.guilds.find((item) => item.id === guildId) ?? null;
@@ -144,13 +149,13 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
       setChannels(availableChannels);
       setConfig(loaded);
       setSavedSnapshot(JSON.stringify(loaded));
-      if (profileResponse.ok) setProfile(await profileResponse.json() as Profile);
+      const profileResponse = await fetch('/api/discord/profile', { cache: 'no-store', credentials: 'same-origin' });
+      if (profileResponse.ok && active) setProfile(await profileResponse.json() as Profile);
       setState('ready');
-    }).catch(() => active && setState('error'));
+    };
+    void load().catch(() => active && setState('error'));
     return () => { active = false; };
   }, [guildId]);
-
-  useEffect(() => setBannerFailed(false), [config.bannerUrl]);
 
   const selectedChannel = channels.find((channel) => channel.id === config.channelId);
   const validationError = useMemo(() => {
@@ -235,6 +240,7 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
   const previewAvatar = profile?.avatarUrl || guild.icon || '/kael-avatar.webp';
   const previewThumbnail = config.thumbnail === '{membro.avatar}' ? previewAvatar : (config.thumbnail || guild.icon || previewAvatar);
   const configuredBanner = config.bannerUrl || guild.banner || (config.fallbackServerIcon ? guild.icon : null);
+  const bannerFailed = Boolean(config.bannerUrl && failedBannerUrl === config.bannerUrl);
   const previewBanner = bannerFailed && config.fallbackServerIcon ? guild.icon : configuredBanner;
   const renderedTitle = replaceVariables(config.title, guild, profile, selectedChannel);
   const renderedMessage = replaceVariables(config.message, guild, profile, selectedChannel);
@@ -302,7 +308,7 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
             <div className="welcome-component-preview" style={{ '--preview-accent': config.accentColor } as CSSProperties}>
               <div className="welcome-preview-author"><Image src={config.authorIcon === '{membro.avatar}' ? previewAvatar : (config.authorIcon || '/kael-avatar.webp')} alt="" width={36} height={36} unoptimized draggable={false} /><span>{config.authorName || 'Kael'}</span></div>
               <div className="welcome-preview-copy"><span><strong>{renderedTitle}</strong><p>{renderedMessage}</p></span>{previewThumbnail && <Image src={previewThumbnail} alt="" width={58} height={58} unoptimized draggable={false} />}</div>
-              {previewBanner && <span className="welcome-preview-banner"><Image src={previewBanner} alt="" fill unoptimized draggable={false} onError={() => setBannerFailed(true)} /></span>}
+              {previewBanner && <span className="welcome-preview-banner"><Image src={previewBanner} alt="" fill unoptimized draggable={false} onError={() => setFailedBannerUrl(config.bannerUrl || previewBanner)} /></span>}
               {renderedFooter && <small className="welcome-preview-footer">{renderedFooter}</small>}
               {config.buttons.length > 0 && <div className="welcome-preview-buttons">{config.buttons.map((button, index) => <a key={index} href={button.url || '#'} onClick={(event) => event.preventDefault()}>{button.emoji && <span>{button.emoji}</span>}{button.label || `Botão ${index + 1}`}</a>)}</div>}
             </div>

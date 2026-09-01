@@ -12,7 +12,7 @@ export type DiscordGuild = {
   memberCount?: number;
 };
 
-type DiscordSession = {
+export type DiscordSession = {
   accessToken: string;
   refreshToken: string | null;
   expiresAt: number;
@@ -391,6 +391,10 @@ export async function getDiscordSession(request: Request) {
 export async function getDiscordProfile(request: Request) {
   const session = await getDiscordSession(request);
   if (!session) return null;
+  return getDiscordProfileForSession(session);
+}
+
+export async function getDiscordProfileForSession(session: DiscordSession) {
   return session.profile?.id ? session.profile : fetchDiscordProfile(session.accessToken);
 }
 
@@ -398,12 +402,11 @@ export async function kaelDashboardRequest(path: string, init?: RequestInit): Pr
   const configuration = getBotConfiguration();
   if (!configuration || !path.startsWith('/internal/')) return null;
   try {
+    const headers = new Headers(init?.headers);
+    headers.set('Authorization', `Bearer ${configuration.apiKey}`);
     return await fetch(new URL(path, configuration.baseUrl), {
       ...init,
-      headers: {
-        Authorization: `Bearer ${configuration.apiKey}`,
-        ...(init?.headers ?? {}),
-      },
+      headers,
       redirect: 'manual',
       signal: AbortSignal.timeout(8_000),
     });

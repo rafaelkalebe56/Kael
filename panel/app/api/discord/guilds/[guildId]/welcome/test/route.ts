@@ -1,4 +1,4 @@
-import { dashboardGuilds, getDiscordProfile, kaelDashboardRequest, resolveDiscordSession } from '@/lib/discord-auth';
+import { dashboardGuilds, getDiscordProfileForSession, kaelDashboardRequest, resolveDiscordSession } from '@/lib/discord-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +14,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ gui
   if (guilds === undefined) return Response.json({ error: 'bot_unavailable' }, { status: 503, headers });
   if (!guilds.some((guild) => guild.id === guildId)) return Response.json({ error: 'forbidden' }, { status: 403, headers });
 
-  const profile = resolution.session.profile?.id ? resolution.session.profile : await getDiscordProfile(request);
+  const profile = await getDiscordProfileForSession(resolution.session);
   if (!profile?.id) return Response.json({ error: 'profile_unavailable' }, { status: 401, headers });
 
   const body = await request.json().catch(() => null) as { config?: unknown; target?: unknown } | null;
