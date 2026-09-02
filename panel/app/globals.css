@@ -539,6 +539,7 @@ html[data-kael-theme='light'] .dashboard-mobile-sheet { border-color:#d8d9d5!imp
 .welcome-behavior-list select { width:124px; margin:0; }
 .welcome-behavior-control { display:flex; align-items:center; gap:7px; }
 .welcome-preview { padding:14px; }
+.welcome-preview-mention { margin:0 0 7px; color:var(--dash-accent); font-size:11px; font-weight:750; }
 .welcome-component-preview { --preview-accent:#4055ff; position:relative; padding:13px 13px 13px 17px; overflow:hidden; border:1px solid var(--dash-line); border-radius:3px; background:var(--dash-surface-2); }
 .welcome-component-preview::before { position:absolute; top:0; bottom:0; left:0; width:4px; content:''; background:var(--preview-accent); }
 .welcome-preview-author { display:flex; align-items:center; gap:9px; color:var(--dash-accent); font-size:11px; font-weight:750; }

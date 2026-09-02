@@ -23,6 +23,7 @@ DEFAULT_WELCOME_SETTINGS: dict[str, Any] = {
     "footerIcon": "",
     "buttons": [],
     "ignoreBots": True,
+    "mentionOnJoin": False,
     "delaySeconds": 1,
     "autoDeleteSeconds": None,
     "deduplicate": True,

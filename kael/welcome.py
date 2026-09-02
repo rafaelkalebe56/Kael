@@ -142,6 +142,7 @@ def validate_welcome_settings(payload: Any, valid_channel_ids: set[str]) -> dict
     settings["buttons"] = buttons
 
     settings["ignoreBots"] = payload.get("ignoreBots") is not False
+    settings["mentionOnJoin"] = payload.get("mentionOnJoin") is True
     delay = payload.get("delaySeconds")
     settings["delaySeconds"] = max(0, min(30, int(delay) if isinstance(delay, (int, float)) else 1))
     auto_delete = payload.get("autoDeleteSeconds")
@@ -288,6 +289,7 @@ async def send_welcome(
             raise WelcomeValidationError("O canal configurado não está mais disponível.")
         embed, view = build_welcome_embed(settings, member, guild, channel)
         await channel.send(
+            content=member.mention if settings.get("mentionOnJoin") else None,
             embed=embed,
             view=view,
             allowed_mentions=allowed_mentions,

@@ -51,6 +51,7 @@ type WelcomeConfig = {
   footerIcon: string;
   buttons: WelcomeButton[];
   ignoreBots: boolean;
+  mentionOnJoin: boolean;
   delaySeconds: number;
   autoDeleteSeconds: number | null;
   deduplicate: boolean;
@@ -92,6 +93,7 @@ const defaultConfig: WelcomeConfig = {
   footerIcon: '',
   buttons: [],
   ignoreBots: true,
+  mentionOnJoin: false,
   delaySeconds: 1,
   autoDeleteSeconds: null,
   deduplicate: true,
@@ -529,7 +531,7 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
           <label>Formato<span className="welcome-format-wrap"><select value="embed" disabled><option>Embed tradicional</option></select><span title="Mensagem em embed tradicional do Discord."><KaelInfo /></span></span></label>
         </section>
 
-        <nav className="welcome-tabs" aria-label="Editor de boas-vindas">{([['message', 'Mensagem'], ['appearance', 'Aparência'], ['behavior', 'Comportamento']] as [EditorTab, string][]).map(([key, label]) => <button type="button" className={tab === key ? 'active' : ''} key={key} onClick={() => setTab(key)}>{label}</button>)}<small>Bots ignorados · atraso de {config.delaySeconds}s · antirrepetição {config.deduplicate ? 'ativa' : 'desativada'}</small></nav>
+        <nav className="welcome-tabs" aria-label="Editor de boas-vindas">{([['message', 'Mensagem'], ['appearance', 'Aparência'], ['behavior', 'Comportamento']] as [EditorTab, string][]).map(([key, label]) => <button type="button" className={tab === key ? 'active' : ''} key={key} onClick={() => setTab(key)}>{label}</button>)}<small>{config.mentionOnJoin ? 'Menção ativa' : 'Sem menção extra'} · atraso de {config.delaySeconds}s · antirrepetição {config.deduplicate ? 'ativa' : 'desativada'}</small></nav>
         <output className={`welcome-validation welcome-validation-global ${validationError ? 'is-error' : fallbackNotice ? 'is-warning' : ''}`}>{validationError || fallbackNotice ? <KaelInfo /> : <KaelCheck />}{validationError || fallbackNotice || 'Tudo certo para enviar'}</output>
         {dirty && <footer className="welcome-actions"><span className="is-dirty"><i />Alterações não salvas</span><button type="button" onClick={() => void save()} disabled={saving || Boolean(validationError)}><KaelSave />{saving ? 'Salvando...' : 'Salvar alterações'}</button></footer>}
 
@@ -553,6 +555,7 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
             {tab === 'behavior' && <div className="welcome-tab-panel">
               <h2><KaelShield /> Comportamento</h2>
               <div className="welcome-behavior-list">
+                <div><span><strong>Mencionar ao entrar</strong><small>Marca o novo membro fora do embed para enviar uma notificação real.</small></span><Toggle checked={config.mentionOnJoin} onChange={(value) => update('mentionOnJoin', value)} label="Mencionar o novo membro ao entrar" /></div>
                 <div><span><strong>Ignorar entrada de bots</strong><small>Evita mensagens para contas automatizadas.</small></span><Toggle checked={config.ignoreBots} onChange={(value) => update('ignoreBots', value)} label="Ignorar bots" /></div>
                 <div><span><strong>Atraso antes do envio</strong><small>Dá tempo para o Discord concluir a entrada.</small></span><select value={config.delaySeconds} onChange={(event) => update('delaySeconds', Number(event.target.value))}>{[0, 1, 2, 3, 5, 10].map((seconds) => <option key={seconds} value={seconds}>{seconds === 0 ? 'Sem atraso' : `${seconds}s`}</option>)}</select></div>
                 <div><span><strong>Apagar automaticamente</strong><small>Opcional para manter o canal organizado.</small></span><span className="welcome-behavior-control"><Toggle checked={config.autoDeleteSeconds !== null} onChange={(checked) => update('autoDeleteSeconds', checked ? 60 : null)} label="Apagar automaticamente" />{config.autoDeleteSeconds !== null && <select value={config.autoDeleteSeconds} onChange={(event) => update('autoDeleteSeconds', Number(event.target.value))}>{[30, 60, 300, 3600].map((seconds) => <option key={seconds} value={seconds}>{seconds < 60 ? `${seconds}s` : seconds < 3600 ? `${seconds / 60} min` : '1 hora'}</option>)}</select>}</span></div>
@@ -563,6 +566,7 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
 
           <aside className="welcome-preview" aria-label="Prévia em tempo real">
             <h2>Prévia em tempo real</h2>
+            {config.mentionOnJoin && <p className="welcome-preview-mention">@{profile?.displayName || 'Novo membro'}</p>}
             <div className="welcome-component-preview" style={{ '--preview-accent': config.accentColor } as CSSProperties}>
               <div className="welcome-preview-author">{previewAuthorIcon && <Image src={previewAuthorIcon} alt="" width={36} height={36} unoptimized draggable={false} onError={() => markImageFailed('authorIcon', config.authorIcon)} />}<span>{config.authorName || 'Kael'}</span></div>
               <div className="welcome-preview-copy"><span><strong>{renderedTitle}</strong><p>{renderedMessage}</p></span>{previewThumbnail && <Image src={previewThumbnail} alt="" width={58} height={58} unoptimized draggable={false} onError={() => markImageFailed('thumbnail', config.thumbnail)} />}</div>

@@ -5,12 +5,16 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock
+
+import discord
 
 from kael.database import DEFAULT_WELCOME_SETTINGS, Database
 from kael.welcome import (
     WelcomeValidationError,
     build_welcome_embed,
     render_welcome_text,
+    send_welcome,
     validate_welcome_settings,
 )
 
@@ -43,6 +47,12 @@ def valid_payload() -> dict[str, object]:
 
 
 class WelcomeValidationTests(unittest.TestCase):
+    def test_enables_join_mention_only_when_explicitly_selected(self) -> None:
+        self.assertFalse(validate_welcome_settings(valid_payload(), {"10"})["mentionOnJoin"])
+        self.assertTrue(
+            validate_welcome_settings({**valid_payload(), "mentionOnJoin": True}, {"10"})["mentionOnJoin"]
+        )
+
     def test_normalizes_limits_and_embed_format(self) -> None:
         payload = valid_payload()
         payload.update(
@@ -200,6 +210,29 @@ class WelcomeRenderingTests(unittest.TestCase):
         self.assertNotIn("thumbnail", data)
         self.assertNotIn("image", data)
         self.assertNotIn("icon_url", data["footer"])
+
+
+class WelcomeSendingTests(unittest.IsolatedAsyncioTestCase):
+    async def test_mentions_member_outside_embed_when_enabled(self) -> None:
+        channel = MagicMock(spec=discord.TextChannel)
+        channel.mention = "<#10>"
+        channel.send = AsyncMock()
+        guild = Guild()
+        guild.get_channel = lambda _channel_id: channel
+        settings = validate_welcome_settings(
+            {**valid_payload(), "mentionOnJoin": True},
+            {"10"},
+        )
+
+        await send_welcome(MagicMock(), guild, Member(), settings)
+
+        self.assertEqual(channel.send.await_args.kwargs["content"], Member.mention)
+        self.assertTrue(channel.send.await_args.kwargs["allowed_mentions"].users)
+
+        channel.send.reset_mock()
+        settings = validate_welcome_settings(valid_payload(), {"10"})
+        await send_welcome(MagicMock(), guild, Member(), settings)
+        self.assertIsNone(channel.send.await_args.kwargs["content"])
 
 
 class WelcomeDatabaseTests(unittest.TestCase):
