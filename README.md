@@ -3,7 +3,8 @@
 Versão atual: **1.1.2**
 
 Kael é um bot modular para comunidades no Discord. Esta primeira base inclui
-configuração segura, banco separado por servidor e o comando `/status`.
+configuração segura, banco separado por servidor, comandos `/ajuda`,
+`/serverinfo`, `/perfil`, `/status` e ajuda rápida ao mencionar o `@Kael`.
 
 ## Dados persistentes
 

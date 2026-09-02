@@ -31,6 +31,7 @@ class KaelBot(commands.Bot):
         self.database.initialize()
         if self.dashboard_api is not None:
             await self.dashboard_api.start()
+        await self.load_extension("kael.cogs.community")
         await self.load_extension("kael.cogs.status")
 
         if self.settings.dev_guild_id:
