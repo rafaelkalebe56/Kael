@@ -458,6 +458,8 @@ html[data-kael-theme='light'] .dashboard-mobile-sheet { border-color:#d8d9d5!imp
 .welcome-template button,.welcome-add-button button { min-height:32px; padding:0 10px; border:1px solid var(--dash-line-strong); border-radius:2px; color:var(--dash-text); background:var(--dash-surface-2); font-size:9px; }
 .welcome-validation { display:flex; min-height:38px; align-items:center; gap:8px; margin:12px 0 0; padding:0 11px; border:1px solid color-mix(in srgb,var(--dash-success) 45%,var(--dash-line)); color:var(--dash-success); background:color-mix(in srgb,var(--dash-success) 7%,transparent); font-size:10px; }
 .welcome-validation.is-error { border-color:color-mix(in srgb,#ef6b73 45%,var(--dash-line)); color:#ef858c; background:color-mix(in srgb,#ef6b73 7%,transparent); }
+.welcome-validation.is-warning { border-color:color-mix(in srgb,#e8b947 48%,var(--dash-line)); color:#d6a62d; background:color-mix(in srgb,#e8b947 8%,transparent); }
+.welcome-validation-global { margin-bottom:0; }
 .welcome-validation svg { width:15px; }
 .welcome-form-section { padding:13px 0; border-top:1px solid var(--dash-line); }
 .welcome-form-section:first-of-type { padding-top:0; border-top:0; }
@@ -503,6 +505,8 @@ html[data-kael-theme='light'] .dashboard-mobile-sheet { border-color:#d8d9d5!imp
 .welcome-preview-footer img { width:18px; height:18px; border-radius:50%; object-fit:cover; }
 .welcome-preview-buttons { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
 .welcome-preview-buttons a { display:inline-flex; min-height:32px; align-items:center; gap:6px; padding:0 10px; border:1px solid var(--dash-accent); border-radius:2px; color:var(--dash-accent); background:transparent; font-size:9px; font-weight:750; text-decoration:none; }
+.welcome-preview-buttons a:hover { color:#fff; background:var(--dash-accent); }
+.welcome-preview-buttons a[aria-disabled='true'] { cursor:not-allowed; opacity:.5; }
 .welcome-test-row { display:grid; grid-template-columns:auto minmax(130px,180px); gap:6px; margin-top:9px; }
 .welcome-test-row button { display:inline-flex; min-height:37px; align-items:center; justify-content:center; gap:7px; padding:0 11px; border:1px solid var(--dash-line-strong); border-radius:2px; color:var(--dash-text); background:var(--dash-surface-2); font-size:10px; font-weight:750; }
 .welcome-test-row button:disabled { cursor:not-allowed; opacity:.55; }
@@ -513,7 +517,7 @@ html[data-kael-theme='light'] .dashboard-mobile-sheet { border-color:#d8d9d5!imp
 .welcome-feedback p.success { border-color:color-mix(in srgb,var(--dash-success) 45%,var(--dash-line)); color:var(--dash-success); }
 .welcome-feedback p.error { border-color:color-mix(in srgb,#ef6b73 45%,var(--dash-line)); color:#ef858c; }
 .welcome-feedback svg { width:14px; }
-.welcome-actions { display:flex; min-height:62px; align-items:center; justify-content:flex-end; gap:16px; margin-top:10px; border-top:1px solid var(--dash-line); }
+.welcome-actions { display:flex; position:sticky; z-index:15; top:0; min-height:58px; align-items:center; justify-content:flex-end; gap:16px; margin-top:8px; padding:8px 0; border-top:1px solid var(--dash-line); border-bottom:1px solid var(--dash-line); background:color-mix(in srgb,var(--dash-bg) 94%,transparent); backdrop-filter:blur(10px); }
 .welcome-actions > span { display:inline-flex; align-items:center; gap:7px; color:var(--dash-muted); font-size:9px; }
 .welcome-actions > span i { width:7px; height:7px; border-radius:50%; background:var(--dash-success); }
 .welcome-actions > span.is-dirty i { background:#e8b947; }
@@ -553,7 +557,7 @@ html[data-kael-theme='light'] .dashboard-mobile-sheet { border-color:#d8d9d5!imp
   .welcome-emoji-field { grid-column:1; grid-row:3; }
   .welcome-button-row > button { grid-column:2; grid-row:1; }
   .welcome-test-row { grid-template-columns:1fr; }
-  .welcome-actions { position:sticky; z-index:10; bottom:0; margin:10px -12px -18px; padding:10px 12px; background:var(--dash-bg); }
+  .welcome-actions { top:0; margin:8px -12px 0; padding:8px 12px; }
 }
 @media (prefers-reduced-motion:reduce) {
   .welcome-toggle,.welcome-toggle span { transition:none!important; }

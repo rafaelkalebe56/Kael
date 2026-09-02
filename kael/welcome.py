@@ -22,6 +22,18 @@ VARIABLES = (
     "{hora}",
 )
 
+CUSTOM_EMOJI_PATTERN = re.compile(r"^<a?:[A-Za-z0-9_]{2,32}:\d{17,20}>$")
+UNICODE_EMOJI_PATTERN = re.compile(
+    "["
+    "\U0001F000-\U0001FAFF"
+    "\u2600-\u27BF"
+    "\u2300-\u23FF"
+    "\u2B00-\u2BFF"
+    "\uFE0F"
+    "\u20E3"
+    "]"
+)
+
 
 class WelcomeValidationError(ValueError):
     pass
@@ -33,16 +45,50 @@ def _text(value: Any, maximum: int, default: str = "") -> str:
     return value.strip()[:maximum]
 
 
-def _https_url(value: Any, *, allow_member_avatar: bool = False) -> str:
-    text = _text(value, 2048)
+def _web_url(
+    value: Any,
+    *,
+    allow_member_avatar: bool = False,
+    maximum: int = 2048,
+) -> str:
+    text = _text(value, maximum)
     if allow_member_avatar and text == "{membro.avatar}":
         return text
     if not text:
         return ""
-    parsed = urlparse(text)
-    if parsed.scheme != "https" or not parsed.netloc:
-        raise WelcomeValidationError("As URLs precisam começar com https://.")
-    return text
+    if any(character.isspace() or ord(character) < 32 for character in text):
+        raise WelcomeValidationError("Use uma URL web completa e sem espaços.")
+    has_scheme = re.match(r"^[A-Za-z][A-Za-z0-9+.-]*:", text) is not None
+    normalized = text if has_scheme else f"https://{text}"
+    if len(normalized) > maximum:
+        raise WelcomeValidationError("A URL informada é muito longa.")
+    parsed = urlparse(normalized)
+    try:
+        port = parsed.port
+    except ValueError as error:
+        raise WelcomeValidationError("Use uma URL web completa e válida.") from error
+    if (
+        parsed.scheme not in {"http", "https"}
+        or not parsed.hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or (port is not None and not 1 <= port <= 65535)
+    ):
+        raise WelcomeValidationError("Use uma URL web completa e válida.")
+    return normalized
+
+
+def _button_emoji(value: Any) -> str:
+    text = _text(value, 100)
+    if not text:
+        return ""
+    if CUSTOM_EMOJI_PATTERN.fullmatch(text):
+        return text
+    if not re.search(r"[A-Za-z]", text) and UNICODE_EMOJI_PATTERN.search(text):
+        return text
+    raise WelcomeValidationError(
+        "Use um emoji normal ou personalizado no formato <:nome:id>."
+    )
 
 
 def validate_welcome_settings(payload: Any, valid_channel_ids: set[str]) -> dict[str, Any]:
@@ -66,17 +112,17 @@ def validate_welcome_settings(payload: Any, valid_channel_ids: set[str]) -> dict
         raise WelcomeValidationError("Preencha o título e a mensagem.")
 
     settings["authorName"] = _text(payload.get("authorName"), 256, "Kael")
-    settings["authorUrl"] = _https_url(payload.get("authorUrl"))
-    settings["authorIcon"] = _https_url(payload.get("authorIcon"), allow_member_avatar=True)
-    settings["thumbnail"] = _https_url(payload.get("thumbnail"), allow_member_avatar=True)
-    settings["bannerUrl"] = _https_url(payload.get("bannerUrl"))
+    settings["authorUrl"] = _web_url(payload.get("authorUrl"))
+    settings["authorIcon"] = _web_url(payload.get("authorIcon"), allow_member_avatar=True)
+    settings["thumbnail"] = _web_url(payload.get("thumbnail"), allow_member_avatar=True)
+    settings["bannerUrl"] = _web_url(payload.get("bannerUrl"))
 
     accent = _text(payload.get("accentColor"), 7, "#4055FF").upper()
     if not re.fullmatch(r"#[0-9A-F]{6}", accent):
         raise WelcomeValidationError("Use uma cor no formato #4055FF.")
     settings["accentColor"] = accent
     settings["footer"] = _text(payload.get("footer"), 2048)
-    settings["footerIcon"] = _https_url(payload.get("footerIcon"), allow_member_avatar=True)
+    settings["footerIcon"] = _web_url(payload.get("footerIcon"), allow_member_avatar=True)
 
     raw_buttons = payload.get("buttons")
     if not isinstance(raw_buttons, list):
@@ -88,10 +134,10 @@ def validate_welcome_settings(payload: Any, valid_channel_ids: set[str]) -> dict
         if not isinstance(raw_button, Mapping):
             continue
         label = _text(raw_button.get("label"), 80)
-        url = _https_url(raw_button.get("url"))
-        emoji = _text(raw_button.get("emoji"), 100)
+        url = _web_url(raw_button.get("url"), maximum=512)
+        emoji = _button_emoji(raw_button.get("emoji"))
         if not label or not url:
-            raise WelcomeValidationError("Cada botão precisa de nome e link HTTPS.")
+            raise WelcomeValidationError("Cada botão precisa de nome e uma URL web válida.")
         buttons.append({"label": label, "url": url, "emoji": emoji})
     settings["buttons"] = buttons
 
@@ -127,14 +173,20 @@ def render_welcome_text(template: str, member: discord.abc.User, guild: discord.
     return rendered
 
 
-def _media_url(value: str, member: discord.abc.User, guild: discord.Guild, fallback: bool) -> str | None:
+def _asset_url(asset: Any) -> str | None:
+    return str(asset.url) if asset and getattr(asset, "url", None) else None
+
+
+def _media_url(
+    value: str,
+    member: discord.abc.User,
+    fallback_url: str | None,
+) -> str | None:
     if value == "{membro.avatar}":
         return str(member.display_avatar.url)
-    if value.startswith("https://"):
+    if value.startswith(("http://", "https://")):
         return value
-    if fallback and guild.icon:
-        return str(guild.icon.url)
-    return None
+    return fallback_url
 
 
 def build_welcome_embed(
@@ -152,7 +204,14 @@ def build_welcome_embed(
         str(settings.get("authorName") or "Kael"), member, guild, channel
     )
     author_url = str(settings.get("authorUrl") or "") or None
-    author_icon = _media_url(str(settings.get("authorIcon") or ""), member, guild, False)
+    guild_icon = _asset_url(guild.icon)
+    guild_banner = _asset_url(getattr(guild, "banner", None))
+    fallback_enabled = bool(settings.get("fallbackServerIcon"))
+    author_icon = _media_url(
+        str(settings.get("authorIcon") or ""),
+        member,
+        guild_icon if fallback_enabled else None,
+    )
     if not author_icon and guild.me and guild.me.display_avatar:
         author_icon = str(guild.me.display_avatar.url)
     embed.set_author(name=author_name, url=author_url, icon_url=author_icon)
@@ -160,8 +219,7 @@ def build_welcome_embed(
     thumbnail = _media_url(
         str(settings.get("thumbnail") or ""),
         member,
-        guild,
-        bool(settings.get("fallbackServerIcon")),
+        guild_icon if fallback_enabled else None,
     )
     if thumbnail:
         embed.set_thumbnail(url=thumbnail)
@@ -169,8 +227,7 @@ def build_welcome_embed(
     banner_url = _media_url(
         str(settings.get("bannerUrl") or ""),
         member,
-        guild,
-        bool(settings.get("fallbackServerIcon")),
+        (guild_banner or guild_icon) if fallback_enabled else None,
     )
     if banner_url:
         embed.set_image(url=banner_url)
@@ -179,8 +236,7 @@ def build_welcome_embed(
     footer_icon = _media_url(
         str(settings.get("footerIcon") or ""),
         member,
-        guild,
-        bool(settings.get("fallbackServerIcon")),
+        guild_icon if fallback_enabled else None,
     )
     if footer:
         embed.set_footer(text=footer, icon_url=footer_icon)
