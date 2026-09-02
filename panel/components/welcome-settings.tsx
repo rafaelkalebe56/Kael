@@ -351,7 +351,7 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
 
         <nav className="welcome-tabs" aria-label="Editor de boas-vindas">{([['message', 'Mensagem'], ['appearance', 'Aparência'], ['behavior', 'Comportamento']] as [EditorTab, string][]).map(([key, label]) => <button type="button" className={tab === key ? 'active' : ''} key={key} onClick={() => setTab(key)}>{label}</button>)}<small>Bots ignorados · atraso de {config.delaySeconds}s · antirrepetição {config.deduplicate ? 'ativa' : 'desativada'}</small></nav>
         <output className={`welcome-validation welcome-validation-global ${validationError ? 'is-error' : fallbackNotice ? 'is-warning' : ''}`}>{validationError || fallbackNotice ? <KaelInfo /> : <KaelCheck />}{validationError || fallbackNotice || 'Tudo certo para enviar'}</output>
-        <footer className="welcome-actions"><span className={dirty ? 'is-dirty' : ''}><i />{dirty ? 'Alterações não salvas' : 'Tudo salvo'}</span><button type="button" onClick={() => void save()} disabled={saving || Boolean(validationError) || !dirty}><KaelSave />{saving ? 'Salvando...' : 'Salvar alterações'}</button></footer>
+        {dirty && <footer className="welcome-actions"><span className="is-dirty"><i />Alterações não salvas</span><button type="button" onClick={() => void save()} disabled={saving || Boolean(validationError)}><KaelSave />{saving ? 'Salvando...' : 'Salvar alterações'}</button></footer>}
 
         <div className="welcome-editor-grid">
           <section className="welcome-editor" aria-label="Editor da mensagem">
