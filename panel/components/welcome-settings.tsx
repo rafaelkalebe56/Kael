@@ -23,12 +23,14 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 
 type Guild = { id: string; name: string; icon: string | null; banner: string | null; memberCount?: number };
 type Channel = { id: string; name: string };
-type Profile = { displayName: string; avatarUrl: string | null };
+type Profile = { id: string; displayName: string; avatarUrl: string | null };
 type Delivery = 'channel' | 'dm' | 'both';
 type EditorTab = 'message' | 'appearance' | 'behavior';
 type Feedback = { kind: 'success' | 'error'; message: string } | null;
 type WelcomeButton = { label: string; url: string; emoji: string };
 type ImageField = 'authorIcon' | 'thumbnail' | 'bannerUrl' | 'footerIcon';
+type ImageSource = 'self' | 'server' | 'custom' | 'member';
+type AuthorLinkSource = 'self' | 'server' | 'custom' | 'none';
 type FailedImages = Partial<Record<ImageField, string>>;
 type WelcomeConfig = {
   enabled: boolean;
@@ -53,7 +55,22 @@ type WelcomeConfig = {
   fallbackServerIcon: boolean;
 };
 
-const variables = ['{membro}', '{membro.nome}', '{membro.avatar}', '{servidor}', '{membros}', '{canal}', '{data}', '{hora}'];
+const variables = [
+  { token: '{membro}', description: 'Menciona o novo membro' },
+  { token: '{membro.nome}', description: 'Mostra somente o nome' },
+  { token: '{servidor}', description: 'Nome do servidor' },
+  { token: '{membros}', description: 'Quantidade de membros' },
+  { token: '{canal}', description: 'Menciona o canal escolhido' },
+  { token: '{data}', description: 'Data em que entrou' },
+  { token: '{hora}', description: 'Horário em que entrou' },
+] as const;
+const renderedVariables = [...variables.map(({ token }) => token), '{membro.avatar}'];
+const defaultImageSources: Record<ImageField, ImageSource> = {
+  authorIcon: 'server',
+  thumbnail: 'member',
+  bannerUrl: 'server',
+  footerIcon: 'server',
+};
 const initialMessage = 'Olá, {membro}! Que bom ter você no {servidor}.\nAgora somos {membros} membros.';
 
 const defaultConfig: WelcomeConfig = {
@@ -121,6 +138,25 @@ function isButtonEmoji(value: string) {
   });
 }
 
+function serverImage(field: ImageField, guild: Guild) {
+  return field === 'bannerUrl' ? guild.banner || guild.icon : guild.icon || guild.banner;
+}
+
+function inferImageSource(field: ImageField, value: string, guild: Guild, profile: Profile | null): ImageSource {
+  if (value === '{membro.avatar}') return 'member';
+  if (value && profile?.avatarUrl && secureWebUrl(value) === secureWebUrl(profile.avatarUrl)) return 'self';
+  const guildImage = serverImage(field, guild);
+  if (!value || (guildImage && secureWebUrl(value) === secureWebUrl(guildImage))) return 'server';
+  return 'custom';
+}
+
+function inferAuthorLinkSource(value: string, guild: Guild, profile: Profile | null): AuthorLinkSource {
+  if (!value) return 'none';
+  if (profile?.id && secureWebUrl(value) === `https://discord.com/users/${profile.id}`) return 'self';
+  if (secureWebUrl(value) === `https://discord.com/channels/${guild.id}`) return 'server';
+  return 'custom';
+}
+
 function replaceVariables(value: string, guild: Guild, profile: Profile | null, channel: Channel | undefined) {
   const today = new Date();
   const replacements: Record<string, string> = {
@@ -133,7 +169,20 @@ function replaceVariables(value: string, guild: Guild, profile: Profile | null, 
     '{data}': today.toLocaleDateString('pt-BR'),
     '{hora}': today.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
   };
-  return variables.reduce((text, variable) => text.replaceAll(variable, replacements[variable]), value);
+  return renderedVariables.reduce((text, variable) => text.replaceAll(variable, replacements[variable]), value);
+}
+
+function ImageSourceField({ label, field, source, value, profileAvailable, serverAvailable, onSourceChange, onUrlChange }: {
+  label: string;
+  field: ImageField;
+  source: ImageSource;
+  value: string;
+  profileAvailable: boolean;
+  serverAvailable: boolean;
+  onSourceChange: (field: ImageField, source: ImageSource) => void;
+  onUrlChange: (field: ImageField, value: string) => void;
+}) {
+  return <label className="welcome-source-field">{label}<select aria-label={`${label}: origem da imagem`} value={source} onChange={(event) => onSourceChange(field, event.target.value as ImageSource)}><option value="self" disabled={!profileAvailable}>Usar minha foto</option><option value="server" disabled={!serverAvailable}>Usar foto do servidor</option><option value="custom">Usar foto personalizada com URL</option><option value="member">Usar foto do novo membro</option></select>{source === 'custom' && <input aria-label={`${label}: URL personalizada`} inputMode="url" placeholder="site.com/imagem" value={value} onChange={(event) => onUrlChange(field, event.target.value)} />}</label>;
 }
 
 function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (checked: boolean) => void; label: string }) {
@@ -153,6 +202,11 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
   const [testing, setTesting] = useState(false);
   const [testTarget, setTestTarget] = useState<'self' | 'channel'>('self');
   const [failedImages, setFailedImages] = useState<FailedImages>({});
+  const [imageSources, setImageSources] = useState<Record<ImageField, ImageSource>>(defaultImageSources);
+  const [customImageUrls, setCustomImageUrls] = useState<Record<ImageField, string>>({ authorIcon: '', thumbnail: '', bannerUrl: '', footerIcon: '' });
+  const [authorLinkSource, setAuthorLinkSource] = useState<AuthorLinkSource>('custom');
+  const [customAuthorUrl, setCustomAuthorUrl] = useState(defaultConfig.authorUrl);
+  const [enlargedServerImage, setEnlargedServerImage] = useState<string | null>(null);
   const messageRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -169,12 +223,25 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
       if (!selectedGuild) return setState('denied');
       const availableChannels = welcomeData.channels ?? [];
       const loaded = normalizeConfig(welcomeData.config);
+      const loadedProfile = welcomeData.profile ?? null;
       if (!loaded.channelId && availableChannels[0]) loaded.channelId = availableChannels[0].id;
+      const loadedImageSources = (Object.keys(defaultImageSources) as ImageField[]).reduce<Record<ImageField, ImageSource>>((sources, field) => {
+        sources[field] = inferImageSource(field, loaded[field], selectedGuild, loadedProfile);
+        return sources;
+      }, { ...defaultImageSources });
+      setImageSources(loadedImageSources);
+      setCustomImageUrls((Object.keys(defaultImageSources) as ImageField[]).reduce<Record<ImageField, string>>((urls, field) => {
+        urls[field] = loadedImageSources[field] === 'custom' ? loaded[field] : '';
+        return urls;
+      }, { authorIcon: '', thumbnail: '', bannerUrl: '', footerIcon: '' }));
+      const loadedAuthorLinkSource = inferAuthorLinkSource(loaded.authorUrl, selectedGuild, loadedProfile);
+      setAuthorLinkSource(loadedAuthorLinkSource);
+      setCustomAuthorUrl(loadedAuthorLinkSource === 'custom' ? loaded.authorUrl : '');
       setGuild(selectedGuild);
       setChannels(availableChannels);
       setConfig(loaded);
       setSavedSnapshot(JSON.stringify(loaded));
-      if (welcomeData.profile) setProfile(welcomeData.profile);
+      setProfile(loadedProfile);
       setState('ready');
     };
     void load().catch(() => active && setState('error'));
@@ -186,6 +253,9 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
     if (!config.title.trim()) return 'Escreva um título.';
     if (!config.message.trim()) return 'Escreva uma mensagem.';
     if ((config.delivery === 'channel' || config.delivery === 'both') && !selectedChannel) return 'Escolha um canal disponível.';
+    if (authorLinkSource === 'custom' && !config.authorUrl.trim()) return 'Informe a URL personalizada do autor.';
+    const emptyCustomImage = (Object.keys(imageSources) as ImageField[]).find((field) => imageSources[field] === 'custom' && !config[field].trim());
+    if (emptyCustomImage) return 'Informe a URL da imagem personalizada.';
     const urlFields: Array<[string, string, boolean]> = [
       ['URL do autor', config.authorUrl, false],
       ['foto do autor', config.authorIcon, true],
@@ -204,7 +274,7 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
     const failedImage = (Object.entries(failedImages) as Array<[ImageField, string]>).find(([field, url]) => config[field] === url);
     if (failedImage && !config.fallbackServerIcon) return 'Uma imagem não carregou. Corrija a URL ou ative o fallback do servidor.';
     return null;
-  }, [config, failedImages, selectedChannel]);
+  }, [authorLinkSource, config, failedImages, imageSources, selectedChannel]);
 
   const fallbackNotice = useMemo(() => {
     if (!config.fallbackServerIcon) return null;
@@ -216,6 +286,35 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
   const update = <K extends keyof WelcomeConfig>(key: K, value: WelcomeConfig[K]) => {
     setFeedback(null);
     setConfig((current) => ({ ...current, [key]: value }));
+  };
+
+  const chooseImageSource = (field: ImageField, source: ImageSource) => {
+    if (!guild) return;
+    setImageSources((current) => ({ ...current, [field]: source }));
+    setFailedImages((current) => ({ ...current, [field]: undefined }));
+    if (source === 'self') return update(field, profile?.avatarUrl || '');
+    if (source === 'server') return update(field, serverImage(field, guild) || '');
+    if (source === 'member') return update(field, '{membro.avatar}');
+    update(field, customImageUrls[field]);
+  };
+
+  const changeCustomImageUrl = (field: ImageField, value: string) => {
+    setCustomImageUrls((current) => ({ ...current, [field]: value }));
+    update(field, value);
+  };
+
+  const chooseAuthorLinkSource = (source: AuthorLinkSource) => {
+    if (!guild) return;
+    setAuthorLinkSource(source);
+    if (source === 'self') return update('authorUrl', profile?.id ? `https://discord.com/users/${profile.id}` : '');
+    if (source === 'server') return update('authorUrl', `https://discord.com/channels/${guild.id}`);
+    if (source === 'none') return update('authorUrl', '');
+    update('authorUrl', customAuthorUrl);
+  };
+
+  const changeCustomAuthorUrl = (value: string) => {
+    setCustomAuthorUrl(value);
+    update('authorUrl', value);
   };
 
   const markImageFailed = (field: ImageField, url: string) => {
@@ -333,10 +432,11 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
 
       <div className="welcome-main">
         <section className="welcome-server-hero" aria-label={`Servidor ${guild.name}`}>
-          <span className="welcome-server-banner" aria-hidden="true">{guild.banner ? <Image src={guild.banner} alt="" fill unoptimized draggable={false} /> : guild.icon ? <Image className="welcome-server-banner-fallback" src={guild.icon} alt="" fill unoptimized draggable={false} /> : null}</span>
-          <span className="welcome-server-icon">{guild.icon ? <Image src={guild.icon} alt="" width={74} height={74} unoptimized draggable={false} /> : guild.name.slice(0, 1)}</span>
+          {guild.banner || guild.icon ? <button className="welcome-server-banner" type="button" aria-label="Ampliar imagem do servidor" onClick={() => setEnlargedServerImage(guild.banner || guild.icon)}>{guild.banner ? <Image src={guild.banner} alt="" fill unoptimized draggable={false} /> : guild.icon ? <Image className="welcome-server-banner-fallback" src={guild.icon} alt="" fill unoptimized draggable={false} /> : null}</button> : <span className="welcome-server-banner" aria-hidden="true" />}
+          {guild.icon ? <button className="welcome-server-icon" type="button" aria-label="Ampliar ícone do servidor" onClick={() => setEnlargedServerImage(guild.icon)}><Image src={guild.icon} alt="" width={74} height={74} unoptimized draggable={false} /></button> : <span className="welcome-server-icon">{guild.name.slice(0, 1)}</span>}
           <span className="welcome-server-copy"><strong>{guild.name}</strong><small><span><KaelMembers /> {guild.memberCount ?? 0} membros</span><span className="welcome-online"><i /> Kael conectado</span></small></span>
         </section>
+        {enlargedServerImage && <button className="welcome-server-lightbox" type="button" aria-label="Fechar visualização da imagem" onClick={() => setEnlargedServerImage(null)}><span className="welcome-server-lightbox-close" aria-hidden="true">×</span><span className="welcome-server-lightbox-frame"><Image src={enlargedServerImage} alt={`Imagem ampliada do servidor ${guild.name}`} fill sizes="90vw" unoptimized draggable={false} /></span></button>}
 
         <header className="welcome-header">
           <span><h1>Boas-vindas</h1><p>Receba novos membros com uma mensagem personalizada.</p></span>
@@ -359,15 +459,15 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
               <h2><KaelMessage /> Conteúdo</h2>
               <label>Título<span className="welcome-counter">{config.title.length} / 256</span><input maxLength={256} value={config.title} onChange={(event) => update('title', event.target.value)} /></label>
               <label>Mensagem<span className="welcome-counter">{config.message.length} / 2000</span><textarea ref={messageRef} maxLength={2000} value={config.message} onChange={(event) => update('message', event.target.value)} /></label>
-              <div className="welcome-variables"><span>Inserir variável</span><div>{variables.map((variable) => <button type="button" key={variable} onClick={() => insertVariable(variable)}>{variable}</button>)}</div></div>
+              <div className="welcome-variables"><span>Inserir variável</span><div>{variables.map(({ token, description }) => <button type="button" key={token} title={description} aria-label={`${token}: ${description}`} onClick={() => insertVariable(token)}><strong>{token}</strong><small>{description}</small></button>)}</div></div>
               <div className="welcome-template"><span><strong>Modelo inicial</strong><small>Uma mensagem pronta para você personalizar.</small></span><button type="button" onClick={() => { update('title', defaultConfig.title); update('message', initialMessage); }}>Restaurar modelo</button></div>
             </div>}
 
             {tab === 'appearance' && <div className="welcome-tab-panel">
               <h2><KaelImage /> Aparência</h2>
-              <div className="welcome-form-section"><h3>Cabeçalho</h3><div className="welcome-form-grid"><label>Nome do autor<input maxLength={256} value={config.authorName} onChange={(event) => update('authorName', event.target.value)} /></label><label>URL do autor<input inputMode="url" placeholder="site.com ou link completo" value={config.authorUrl} onChange={(event) => update('authorUrl', event.target.value)} /></label><label>Foto do autor<input inputMode="url" placeholder="site.com/imagem ou {membro.avatar}" value={config.authorIcon} onChange={(event) => update('authorIcon', event.target.value)} /></label></div></div>
-              <div className="welcome-form-section"><h3>Imagens e estilo</h3><div className="welcome-form-grid"><label>Thumbnail<input inputMode="url" placeholder="site.com/imagem ou {membro.avatar}" value={config.thumbnail} onChange={(event) => update('thumbnail', event.target.value)} /></label><label>Banner<input inputMode="url" placeholder="site.com/imagem" value={config.bannerUrl} onChange={(event) => update('bannerUrl', event.target.value)} /></label><label>Cor lateral<span className="welcome-color-input"><input type="color" value={config.accentColor} onChange={(event) => update('accentColor', event.target.value.toUpperCase())} /><input maxLength={7} value={config.accentColor} onChange={(event) => update('accentColor', event.target.value.toUpperCase())} /></span></label></div><label className="welcome-checkbox"><input type="checkbox" checked={config.fallbackServerIcon} onChange={(event) => update('fallbackServerIcon', event.target.checked)} />Usar o ícone do servidor se a imagem falhar</label></div>
-              <div className="welcome-form-section"><h3>Rodapé e botões</h3><div className="welcome-footer-fields"><label>Rodapé<input maxLength={2048} value={config.footer} onChange={(event) => update('footer', event.target.value)} /></label><label>Imagem do rodapé<input inputMode="url" placeholder="site.com/imagem ou {membro.avatar}" value={config.footerIcon} onChange={(event) => update('footerIcon', event.target.value)} /></label></div><div className="welcome-buttons-editor">{config.buttons.map((button, index) => <div className="welcome-button-row" key={index}><input aria-label={`Nome do botão ${index + 1}`} maxLength={80} placeholder="Nome" value={button.label} onChange={(event) => update('buttons', config.buttons.map((item, itemIndex) => itemIndex === index ? { ...item, label: event.target.value } : item))} /><span className="welcome-url-field"><KaelLink /><input aria-label={`Link do botão ${index + 1}`} inputMode="url" maxLength={512} placeholder="site.com ou link completo" value={button.url} onChange={(event) => update('buttons', config.buttons.map((item, itemIndex) => itemIndex === index ? { ...item, url: event.target.value } : item))} /></span><input className="welcome-emoji-field" aria-label={`Emoji do botão ${index + 1}`} maxLength={100} placeholder="✨ ou <:kael:id>" value={button.emoji} onChange={(event) => update('buttons', config.buttons.map((item, itemIndex) => itemIndex === index ? { ...item, emoji: event.target.value } : item))} /><button type="button" aria-label={`Remover botão ${index + 1}`} onClick={() => update('buttons', config.buttons.filter((_, itemIndex) => itemIndex !== index))}><KaelTrash /></button></div>)}<div className="welcome-add-button"><span>{config.buttons.length} de 3 botões</span><button type="button" disabled={config.buttons.length >= 3} onClick={() => update('buttons', [...config.buttons, { label: '', url: '', emoji: '' }])}>+ Adicionar botão</button></div></div></div>
+              <div className="welcome-form-section"><h3>Cabeçalho</h3><div className="welcome-form-grid"><label>Nome do autor<input maxLength={256} value={config.authorName} onChange={(event) => update('authorName', event.target.value)} /></label><label className="welcome-source-field">URL do autor<select aria-label="Destino da URL do autor" value={authorLinkSource} onChange={(event) => chooseAuthorLinkSource(event.target.value as AuthorLinkSource)}><option value="self" disabled={!profile?.id}>Meu perfil do Discord</option><option value="server">Servidor no Discord</option><option value="custom">URL personalizada</option><option value="none">Sem link</option></select>{authorLinkSource === 'custom' && <input aria-label="URL personalizada do autor" inputMode="url" placeholder="site.com ou link completo" value={config.authorUrl} onChange={(event) => changeCustomAuthorUrl(event.target.value)} />}</label><ImageSourceField label="Foto do autor" field="authorIcon" source={imageSources.authorIcon} value={config.authorIcon} profileAvailable={Boolean(profile?.avatarUrl)} serverAvailable={Boolean(serverImage('authorIcon', guild))} onSourceChange={chooseImageSource} onUrlChange={changeCustomImageUrl} /></div></div>
+              <div className="welcome-form-section"><h3>Imagens e estilo</h3><div className="welcome-form-grid"><ImageSourceField label="Thumbnail" field="thumbnail" source={imageSources.thumbnail} value={config.thumbnail} profileAvailable={Boolean(profile?.avatarUrl)} serverAvailable={Boolean(serverImage('thumbnail', guild))} onSourceChange={chooseImageSource} onUrlChange={changeCustomImageUrl} /><ImageSourceField label="Banner" field="bannerUrl" source={imageSources.bannerUrl} value={config.bannerUrl} profileAvailable={Boolean(profile?.avatarUrl)} serverAvailable={Boolean(serverImage('bannerUrl', guild))} onSourceChange={chooseImageSource} onUrlChange={changeCustomImageUrl} /><label>Cor lateral<span className="welcome-color-input"><input type="color" value={config.accentColor} onChange={(event) => update('accentColor', event.target.value.toUpperCase())} /><input maxLength={7} value={config.accentColor} onChange={(event) => update('accentColor', event.target.value.toUpperCase())} /></span></label></div><label className="welcome-checkbox"><input type="checkbox" checked={config.fallbackServerIcon} onChange={(event) => update('fallbackServerIcon', event.target.checked)} />Usar o ícone do servidor se a imagem falhar</label></div>
+              <div className="welcome-form-section"><h3>Rodapé e botões</h3><div className="welcome-footer-fields"><label>Rodapé<input maxLength={2048} value={config.footer} onChange={(event) => update('footer', event.target.value)} /></label><ImageSourceField label="Imagem do rodapé" field="footerIcon" source={imageSources.footerIcon} value={config.footerIcon} profileAvailable={Boolean(profile?.avatarUrl)} serverAvailable={Boolean(serverImage('footerIcon', guild))} onSourceChange={chooseImageSource} onUrlChange={changeCustomImageUrl} /></div><div className="welcome-buttons-editor">{config.buttons.map((button, index) => <div className="welcome-button-row" key={index}><input aria-label={`Nome do botão ${index + 1}`} maxLength={80} placeholder="Nome" value={button.label} onChange={(event) => update('buttons', config.buttons.map((item, itemIndex) => itemIndex === index ? { ...item, label: event.target.value } : item))} /><span className="welcome-url-field"><KaelLink /><input aria-label={`Link do botão ${index + 1}`} inputMode="url" maxLength={512} placeholder="site.com ou link completo" value={button.url} onChange={(event) => update('buttons', config.buttons.map((item, itemIndex) => itemIndex === index ? { ...item, url: event.target.value } : item))} /></span><input className="welcome-emoji-field" aria-label={`Emoji do botão ${index + 1}`} maxLength={100} placeholder="✨ ou <:kael:id>" value={button.emoji} onChange={(event) => update('buttons', config.buttons.map((item, itemIndex) => itemIndex === index ? { ...item, emoji: event.target.value } : item))} /><button type="button" aria-label={`Remover botão ${index + 1}`} onClick={() => update('buttons', config.buttons.filter((_, itemIndex) => itemIndex !== index))}><KaelTrash /></button></div>)}<div className="welcome-add-button"><span>{config.buttons.length} de 3 botões</span><button type="button" disabled={config.buttons.length >= 3} onClick={() => update('buttons', [...config.buttons, { label: '', url: '', emoji: '' }])}>+ Adicionar botão</button></div></div></div>
             </div>}
 
             {tab === 'behavior' && <div className="welcome-tab-panel">
