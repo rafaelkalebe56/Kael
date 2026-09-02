@@ -11,6 +11,7 @@ type State = 'loading' | 'guest' | 'allowed' | 'denied' | 'error';
 export function GuildUnderConstruction({ guildId }: { guildId: string }) {
   const [state, setState] = useState<State>('loading');
   const [guild, setGuild] = useState<Guild | null>(null);
+  const [enlargedServerImage, setEnlargedServerImage] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/discord/guilds', { cache: 'no-store' })
@@ -27,7 +28,7 @@ export function GuildUnderConstruction({ guildId }: { guildId: string }) {
 
   if (state === 'loading') return <div className="guild-access-loading"><span /><p>Confirmando suas permissões no Discord...</p></div>;
   if (state === 'guest') {
-    return <div className="panel-empty guild-access-state"><span className="panel-empty-icon"><KaelEnter /></span><p className="panel-state-label">SESSÃO EXPIRADA</p><h2>Entre com o Discord novamente</h2><p>Precisamos confirmar sua identidade e suas permissões antes de abrir esta comunidade.</p><a className="panel-primary-link" href="/api/auth/discord">Entrar com Discord <KaelEnter /></a></div>;
+    return <div className="panel-empty guild-access-state"><span className="panel-empty-icon"><KaelEnter /></span><p className="panel-state-label">SESSÃO EXPIRADA</p><h2>Entre com o Discord novamente</h2><p>Precisamos confirmar sua identidade e suas permissões antes de abrir esta comunidade.</p><button className="panel-primary-link" type="button" onClick={() => location.assign('/api/auth/discord')}>Entrar com Discord <KaelEnter /></button></div>;
   }
   if (state === 'denied') {
     return (
@@ -51,13 +52,11 @@ export function GuildUnderConstruction({ guildId }: { guildId: string }) {
 
       <div className="guild-overview-main">
         <section className="guild-overview-hero" aria-labelledby="guild-title">
-          <div className="guild-overview-banner" aria-hidden="true">
+          {guild?.banner || guild?.icon ? <button className="guild-overview-banner" type="button" aria-label="Ampliar imagem do servidor" onClick={() => setEnlargedServerImage(guild.banner || guild.icon)}>
             {guild?.banner ? <Image src={guild.banner} alt="" fill sizes="(max-width: 760px) 100vw, 75vw" unoptimized draggable={false} /> : guild?.icon ? <Image className="guild-overview-banner-fallback-image" src={guild.icon} alt="" fill sizes="(max-width: 760px) 100vw, 75vw" unoptimized draggable={false} /> : <span className="guild-overview-banner-empty" />}
-          </div>
+          </button> : <div className="guild-overview-banner" aria-hidden="true"><span className="guild-overview-banner-empty" /></div>}
           <div className="guild-overview-identity">
-            <span className="guild-overview-icon" aria-hidden="true">
-              {guild?.icon ? <Image src={guild.icon} alt="" width={128} height={128} unoptimized draggable={false} /> : (guild?.name ?? 'K').slice(0, 1).toUpperCase()}
-            </span>
+            {guild?.icon ? <button className="guild-overview-icon" type="button" aria-label="Ampliar ícone do servidor" onClick={() => setEnlargedServerImage(guild.icon)}><Image src={guild.icon} alt="" width={128} height={128} unoptimized draggable={false} /></button> : <span className="guild-overview-icon" aria-hidden="true">{(guild?.name ?? 'K').slice(0, 1).toUpperCase()}</span>}
             <div className="guild-overview-title">
               <h1 id="guild-title">{guild?.name ?? 'Sua comunidade'}</h1>
               <div className="guild-overview-meta">
@@ -67,6 +66,7 @@ export function GuildUnderConstruction({ guildId }: { guildId: string }) {
             </div>
           </div>
         </section>
+        {enlargedServerImage && <button className="welcome-server-lightbox" type="button" aria-label="Fechar visualização da imagem" onClick={() => setEnlargedServerImage(null)}><span className="welcome-server-lightbox-close" aria-hidden="true">×</span><span className="welcome-server-lightbox-frame"><Image src={enlargedServerImage} alt={`Imagem ampliada do servidor ${guild?.name ?? ''}`} fill sizes="90vw" unoptimized draggable={false} /></span></button>}
 
         <div className="guild-overview-grid">
           <section className="guild-development-card" aria-labelledby="development-title">

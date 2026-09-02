@@ -356,13 +356,15 @@ html[data-kael-theme='light'] .dashboard-mobile-sheet { border-color:#d8d9d5!imp
 .guild-overview-nav-item svg { width:18px; color:var(--dash-accent); }
 .guild-overview-main { min-width:0; padding:0 22px 28px; background:var(--dash-bg); }
 .guild-overview-hero { position:relative; min-height:260px; margin:0 -22px; overflow:hidden; border-bottom:1px solid var(--dash-line); background:var(--dash-surface); }
-.guild-overview-banner { position:absolute; inset:0; overflow:hidden; background:var(--dash-surface-2); }
+.guild-overview-banner { position:absolute; inset:0; overflow:hidden; padding:0; border:0; cursor:zoom-in; background:var(--dash-surface-2); }
+.guild-overview-hero > div.guild-overview-banner { cursor:default; }
 .guild-overview-banner::after { position:absolute; inset:0; content:''; background:linear-gradient(180deg,rgba(3,4,7,.06) 16%,rgba(3,4,7,.78) 76%,rgba(3,4,7,.96) 100%); }
 .guild-overview-banner img { width:100%; height:100%; object-fit:cover; }
 .guild-overview-banner-fallback-image { filter:blur(24px) saturate(.82); opacity:.68; transform:scale(1.2); }
 .guild-overview-banner-empty { position:absolute; inset:0; background:linear-gradient(120deg,var(--dash-surface-2),var(--dash-accent-soft)); }
 .guild-overview-identity { display:flex; position:absolute; z-index:2; right:26px; bottom:24px; left:26px; align-items:flex-end; gap:18px; }
-.guild-overview-icon { display:grid; width:94px; height:94px; flex:0 0 auto; place-items:center; overflow:hidden; border:3px solid rgba(5,6,8,.92); border-radius:5px; color:#fff; background:var(--dash-accent); font-size:34px; font-weight:900; box-shadow:0 12px 30px rgba(0,0,0,.3); }
+.guild-overview-icon { display:grid; width:94px; height:94px; flex:0 0 auto; place-items:center; overflow:hidden; padding:0; border:3px solid rgba(5,6,8,.92); border-radius:5px; cursor:zoom-in; color:#fff; background:var(--dash-accent); font-size:34px; font-weight:900; box-shadow:0 12px 30px rgba(0,0,0,.3); }
+.guild-overview-identity > span.guild-overview-icon { cursor:default; }
 .guild-overview-icon img { width:100%; height:100%; object-fit:cover; }
 .guild-overview-title { min-width:0; padding-bottom:4px; }
 .guild-overview-title h1 { overflow:hidden; margin:0; color:#fff; font-size:clamp(31px,3.2vw,47px); font-weight:820; letter-spacing:-.05em; line-height:1.03; text-overflow:ellipsis; white-space:nowrap; text-shadow:0 2px 18px rgba(0,0,0,.6); }
