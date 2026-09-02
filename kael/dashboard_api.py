@@ -29,6 +29,7 @@ class DashboardApi:
         app.router.add_get("/internal/status", self.status)
         app.router.add_get("/internal/guilds", self.guilds)
         app.router.add_get("/internal/guilds/{guild_id}/welcome", self.get_welcome)
+        app.router.add_get("/internal/guilds/{guild_id}/welcome/mentions", self.get_welcome_mentions)
         app.router.add_put("/internal/guilds/{guild_id}/welcome", self.put_welcome)
         app.router.add_post("/internal/guilds/{guild_id}/welcome/test", self.test_welcome)
         self._runner = web.AppRunner(app, access_log=None)
@@ -114,6 +115,83 @@ class DashboardApi:
                 "channels": self._channels(guild),
             }
         )
+
+    async def get_welcome_mentions(self, request: web.Request) -> web.Response:
+        if not self.is_authorized(request):
+            return web.json_response({"error": "unauthorized"}, status=401)
+        guild = self._guild(request)
+        if guild is None:
+            return web.json_response({"error": "guild_not_found"}, status=404)
+
+        kind = request.query.get("kind")
+        query = request.query.get("q", "").strip().casefold()[:32]
+        if kind not in {"at", "channel"}:
+            return web.json_response({"error": "invalid_kind"}, status=400)
+
+        def matches(name: str) -> bool:
+            return not query or query in name.casefold()
+
+        suggestions = []
+        if kind == "at":
+            members = sorted(
+                (
+                    member
+                    for member in guild.members
+                    if not member.bot and (matches(member.display_name) or matches(member.name))
+                ),
+                key=lambda member: (not member.display_name.casefold().startswith(query), member.display_name.casefold()),
+            )
+            for member in members[:15]:
+                suggestions.append(
+                    {
+                        "id": str(member.id),
+                        "type": "member",
+                        "name": member.display_name,
+                        "detail": f"@{member.name}",
+                        "value": f"<@{member.id}>",
+                        "avatar": str(member.display_avatar.url),
+                    }
+                )
+
+            roles = sorted(
+                (role for role in guild.roles if not role.is_default() and matches(role.name)),
+                key=lambda role: (not role.name.casefold().startswith(query), role.position * -1, role.name.casefold()),
+            )
+            for role in roles[:10]:
+                suggestions.append(
+                    {
+                        "id": str(role.id),
+                        "type": "role",
+                        "name": role.name,
+                        "detail": "Cargo",
+                        "value": f"<@&{role.id}>",
+                        "avatar": None,
+                    }
+                )
+        else:
+            channels = sorted(
+                (
+                    channel
+                    for channel in guild.channels
+                    if isinstance(channel, discord.abc.GuildChannel)
+                    and channel.permissions_for(guild.me).view_channel
+                    and matches(channel.name)
+                ),
+                key=lambda channel: (not channel.name.casefold().startswith(query), channel.position, channel.name.casefold()),
+            )
+            for channel in channels:
+                suggestions.append(
+                    {
+                        "id": str(channel.id),
+                        "type": "channel",
+                        "name": channel.name,
+                        "detail": "Canal",
+                        "value": f"<#{channel.id}>",
+                        "avatar": None,
+                    }
+                )
+
+        return web.json_response({"suggestions": suggestions[:25]})
 
     async def put_welcome(self, request: web.Request) -> web.Response:
         if not self.is_authorized(request):

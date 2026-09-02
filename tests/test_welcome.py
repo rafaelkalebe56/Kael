@@ -177,6 +177,30 @@ class WelcomeRenderingTests(unittest.TestCase):
         )
         self.assertEqual(rendered, "<@42>|Rafa|Servidor de teste|5|este canal")
 
+    def test_explicitly_disables_all_optional_images(self) -> None:
+        payload = valid_payload()
+        payload.update(
+            {
+                "authorIcon": "{sem.imagem}",
+                "thumbnail": "{sem.imagem}",
+                "bannerUrl": "{sem.imagem}",
+                "footerIcon": "{sem.imagem}",
+            }
+        )
+
+        settings = validate_welcome_settings(payload, {"10"})
+        embed, _ = build_welcome_embed(settings, Member(), Guild(), None)
+        data = embed.to_dict()
+
+        self.assertEqual(settings["authorIcon"], "{sem.imagem}")
+        self.assertEqual(settings["thumbnail"], "{sem.imagem}")
+        self.assertEqual(settings["bannerUrl"], "{sem.imagem}")
+        self.assertEqual(settings["footerIcon"], "{sem.imagem}")
+        self.assertNotIn("icon_url", data["author"])
+        self.assertNotIn("thumbnail", data)
+        self.assertNotIn("image", data)
+        self.assertNotIn("icon_url", data["footer"])
+
 
 class WelcomeDatabaseTests(unittest.TestCase):
     def test_persists_and_migrates_legacy_format(self) -> None:

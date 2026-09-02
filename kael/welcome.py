@@ -52,7 +52,7 @@ def _web_url(
     maximum: int = 2048,
 ) -> str:
     text = _text(value, maximum)
-    if allow_member_avatar and text == "{membro.avatar}":
+    if allow_member_avatar and text in {"{membro.avatar}", "{sem.imagem}"}:
         return text
     if not text:
         return ""
@@ -115,7 +115,7 @@ def validate_welcome_settings(payload: Any, valid_channel_ids: set[str]) -> dict
     settings["authorUrl"] = _web_url(payload.get("authorUrl"))
     settings["authorIcon"] = _web_url(payload.get("authorIcon"), allow_member_avatar=True)
     settings["thumbnail"] = _web_url(payload.get("thumbnail"), allow_member_avatar=True)
-    settings["bannerUrl"] = _web_url(payload.get("bannerUrl"))
+    settings["bannerUrl"] = _web_url(payload.get("bannerUrl"), allow_member_avatar=True)
 
     accent = _text(payload.get("accentColor"), 7, "#4055FF").upper()
     if not re.fullmatch(r"#[0-9A-F]{6}", accent):
@@ -182,6 +182,8 @@ def _media_url(
     member: discord.abc.User,
     fallback_url: str | None,
 ) -> str | None:
+    if value == "{sem.imagem}":
+        return None
     if value == "{membro.avatar}":
         return str(member.display_avatar.url)
     if value.startswith(("http://", "https://")):
@@ -212,7 +214,12 @@ def build_welcome_embed(
         member,
         guild_icon if fallback_enabled else None,
     )
-    if not author_icon and guild.me and guild.me.display_avatar:
+    if (
+        not author_icon
+        and settings.get("authorIcon") != "{sem.imagem}"
+        and guild.me
+        and guild.me.display_avatar
+    ):
         author_icon = str(guild.me.display_avatar.url)
     embed.set_author(name=author_name, url=author_url, icon_url=author_icon)
 
@@ -274,7 +281,7 @@ async def send_welcome(
     channel = guild.get_channel(int(settings["channelId"])) if settings.get("channelId") else None
     delivery = target_override or str(settings.get("delivery") or "channel")
     delete_after = settings.get("autoDeleteSeconds")
-    allowed_mentions = discord.AllowedMentions(everyone=False, roles=False, users=True, replied_user=False)
+    allowed_mentions = discord.AllowedMentions(everyone=False, roles=True, users=True, replied_user=False)
 
     if delivery in {"channel", "both"}:
         if not isinstance(channel, discord.abc.Messageable):

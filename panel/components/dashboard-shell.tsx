@@ -11,7 +11,7 @@ type Theme = 'dark' | 'light';
 const navigation = [
   { key: 'home', label: 'Início', href: '/inicio', icon: KaelHome },
   { key: 'servers', label: 'Meus servidores', href: '/servidores', icon: KaelGrid },
-  { key: 'status', label: 'Status', href: '/inicio#status', icon: KaelPulse },
+  { key: 'status', label: 'Status', href: '/status', icon: KaelPulse },
   { key: 'about', label: 'Sobre', href: '/inicio#sobre', icon: KaelInfo },
 ];
 

@@ -19,7 +19,7 @@ import {
   KaelTrash,
   KaelWelcome,
 } from '@/components/kael-icons';
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type KeyboardEvent } from 'react';
 
 type Guild = { id: string; name: string; icon: string | null; banner: string | null; memberCount?: number };
 type Channel = { id: string; name: string };
@@ -29,9 +29,11 @@ type EditorTab = 'message' | 'appearance' | 'behavior';
 type Feedback = { kind: 'success' | 'error'; message: string } | null;
 type WelcomeButton = { label: string; url: string; emoji: string };
 type ImageField = 'authorIcon' | 'thumbnail' | 'bannerUrl' | 'footerIcon';
-type ImageSource = 'self' | 'server' | 'custom' | 'member';
+type ImageSource = 'self' | 'server' | 'custom' | 'member' | 'none';
 type AuthorLinkSource = 'self' | 'server' | 'custom' | 'none';
 type FailedImages = Partial<Record<ImageField, string>>;
+type MentionSuggestion = { id: string; type: 'member' | 'role' | 'channel'; name: string; detail: string; value: string; avatar: string | null };
+type MentionMenu = { trigger: '@' | '#'; query: string; start: number; end: number };
 type WelcomeConfig = {
   enabled: boolean;
   delivery: Delivery;
@@ -118,8 +120,8 @@ function secureWebUrl(value: string) {
   }
 }
 
-function isWebUrl(value: string, allowAvatar = false) {
-  return !value.trim() || (allowAvatar && value.trim() === '{membro.avatar}') || Boolean(secureWebUrl(value));
+function isWebUrl(value: string, allowImageSource = false) {
+  return !value.trim() || (allowImageSource && ['{membro.avatar}', '{sem.imagem}'].includes(value.trim())) || Boolean(secureWebUrl(value));
 }
 
 function isButtonEmoji(value: string) {
@@ -143,6 +145,7 @@ function serverImage(field: ImageField, guild: Guild) {
 }
 
 function inferImageSource(field: ImageField, value: string, guild: Guild, profile: Profile | null): ImageSource {
+  if (value === '{sem.imagem}') return 'none';
   if (value === '{membro.avatar}') return 'member';
   if (value && profile?.avatarUrl && secureWebUrl(value) === secureWebUrl(profile.avatarUrl)) return 'self';
   const guildImage = serverImage(field, guild);
@@ -182,7 +185,7 @@ function ImageSourceField({ label, field, source, value, profileAvailable, serve
   onSourceChange: (field: ImageField, source: ImageSource) => void;
   onUrlChange: (field: ImageField, value: string) => void;
 }) {
-  return <label className="welcome-source-field">{label}<select aria-label={`${label}: origem da imagem`} value={source} onChange={(event) => onSourceChange(field, event.target.value as ImageSource)}><option value="self" disabled={!profileAvailable}>Usar minha foto</option><option value="server" disabled={!serverAvailable}>Usar foto do servidor</option><option value="custom">Usar foto personalizada com URL</option><option value="member">Usar foto do novo membro</option></select>{source === 'custom' && <input aria-label={`${label}: URL personalizada`} inputMode="url" placeholder="site.com/imagem" value={value} onChange={(event) => onUrlChange(field, event.target.value)} />}</label>;
+  return <label className="welcome-source-field">{label}<select aria-label={`${label}: origem da imagem`} value={source} onChange={(event) => onSourceChange(field, event.target.value as ImageSource)}><option value="self" disabled={!profileAvailable}>Usar minha foto</option><option value="server" disabled={!serverAvailable}>Usar foto do servidor</option><option value="custom">Usar foto personalizada com URL</option><option value="member">Usar foto do novo membro</option><option value="none">Não usar imagem</option></select>{source === 'custom' && <input aria-label={`${label}: URL personalizada`} inputMode="url" placeholder="site.com/imagem" value={value} onChange={(event) => onUrlChange(field, event.target.value)} />}</label>;
 }
 
 function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (checked: boolean) => void; label: string }) {
@@ -207,6 +210,11 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
   const [authorLinkSource, setAuthorLinkSource] = useState<AuthorLinkSource>('custom');
   const [customAuthorUrl, setCustomAuthorUrl] = useState(defaultConfig.authorUrl);
   const [enlargedServerImage, setEnlargedServerImage] = useState<string | null>(null);
+  const [mentionMenu, setMentionMenu] = useState<MentionMenu | null>(null);
+  const [mentionSuggestions, setMentionSuggestions] = useState<MentionSuggestion[]>([]);
+  const [mentionLoading, setMentionLoading] = useState(false);
+  const [activeMention, setActiveMention] = useState(0);
+  const [mentionLabels, setMentionLabels] = useState<Record<string, string>>({});
   const messageRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -248,6 +256,30 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
     return () => { active = false; };
   }, [guildId]);
 
+  useEffect(() => {
+    if (!mentionMenu) return;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(async () => {
+      setMentionLoading(true);
+      try {
+        const parameters = new URLSearchParams({ kind: mentionMenu.trigger === '@' ? 'at' : 'channel', q: mentionMenu.query });
+        const response = await fetch(`/api/discord/guilds/${guildId}/welcome/mentions?${parameters}`, { cache: 'no-store', signal: controller.signal });
+        if (!response.ok) throw new Error('mentions');
+        const data = await response.json() as { suggestions?: MentionSuggestion[] };
+        setMentionSuggestions(data.suggestions ?? []);
+        setActiveMention(0);
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === 'AbortError')) setMentionSuggestions([]);
+      } finally {
+        if (!controller.signal.aborted) setMentionLoading(false);
+      }
+    }, 250);
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeout);
+    };
+  }, [guildId, mentionMenu]);
+
   const selectedChannel = channels.find((channel) => channel.id === config.channelId);
   const validationError = useMemo(() => {
     if (!config.title.trim()) return 'Escreva um título.';
@@ -260,7 +292,7 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
       ['URL do autor', config.authorUrl, false],
       ['foto do autor', config.authorIcon, true],
       ['thumbnail', config.thumbnail, true],
-      ['banner', config.bannerUrl, false],
+      ['banner', config.bannerUrl, true],
       ['imagem do rodapé', config.footerIcon, true],
     ];
     const invalidUrl = urlFields.find(([, value, allowAvatar]) => !isWebUrl(value, allowAvatar));
@@ -295,6 +327,7 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
     if (source === 'self') return update(field, profile?.avatarUrl || '');
     if (source === 'server') return update(field, serverImage(field, guild) || '');
     if (source === 'member') return update(field, '{membro.avatar}');
+    if (source === 'none') return update(field, '{sem.imagem}');
     update(field, customImageUrls[field]);
   };
 
@@ -326,10 +359,10 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
     const normalized: WelcomeConfig = {
       ...config,
       authorUrl: secureWebUrl(config.authorUrl) || '',
-      authorIcon: config.authorIcon === '{membro.avatar}' ? config.authorIcon : secureWebUrl(config.authorIcon) || '',
-      thumbnail: config.thumbnail === '{membro.avatar}' ? config.thumbnail : secureWebUrl(config.thumbnail) || '',
-      bannerUrl: secureWebUrl(config.bannerUrl) || '',
-      footerIcon: config.footerIcon === '{membro.avatar}' ? config.footerIcon : secureWebUrl(config.footerIcon) || '',
+      authorIcon: ['{membro.avatar}', '{sem.imagem}'].includes(config.authorIcon) ? config.authorIcon : secureWebUrl(config.authorIcon) || '',
+      thumbnail: ['{membro.avatar}', '{sem.imagem}'].includes(config.thumbnail) ? config.thumbnail : secureWebUrl(config.thumbnail) || '',
+      bannerUrl: ['{membro.avatar}', '{sem.imagem}'].includes(config.bannerUrl) ? config.bannerUrl : secureWebUrl(config.bannerUrl) || '',
+      footerIcon: ['{membro.avatar}', '{sem.imagem}'].includes(config.footerIcon) ? config.footerIcon : secureWebUrl(config.footerIcon) || '',
       buttons: config.buttons.map((button) => ({ ...button, url: secureWebUrl(button.url) || button.url })),
     };
     if (!guild || !config.fallbackServerIcon) return normalized;
@@ -346,6 +379,51 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
       field?.focus();
       field?.setSelectionRange(start + variable.length, start + variable.length);
     });
+  };
+
+  const detectMention = (value: string, caret: number) => {
+    const match = value.slice(0, caret).match(/(?:^|\s)([@#])([^@#\s<>]{0,32})$/u);
+    if (!match) return setMentionMenu(null);
+    setMentionMenu({ trigger: match[1] as '@' | '#', query: match[2], start: caret - match[2].length - 1, end: caret });
+  };
+
+  const changeMessage = (event: ChangeEvent<HTMLTextAreaElement>) => {
+    update('message', event.target.value);
+    detectMention(event.target.value, event.target.selectionStart);
+  };
+
+  const insertMention = (suggestion: MentionSuggestion) => {
+    if (!mentionMenu) return;
+    const nextMessage = `${config.message.slice(0, mentionMenu.start)}${suggestion.value} ${config.message.slice(mentionMenu.end)}`.slice(0, 2000);
+    const caret = Math.min(mentionMenu.start + suggestion.value.length + 1, nextMessage.length);
+    setMentionLabels((current) => ({ ...current, [suggestion.value]: `${suggestion.type === 'channel' ? '#' : '@'}${suggestion.name}` }));
+    update('message', nextMessage);
+    setMentionMenu(null);
+    requestAnimationFrame(() => {
+      messageRef.current?.focus();
+      messageRef.current?.setSelectionRange(caret, caret);
+    });
+  };
+
+  const handleMentionKeys = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!mentionMenu) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      return setMentionMenu(null);
+    }
+    if (!mentionSuggestions.length) return;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      return setActiveMention((current) => (current + 1) % mentionSuggestions.length);
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      return setActiveMention((current) => (current - 1 + mentionSuggestions.length) % mentionSuggestions.length);
+    }
+    if (event.key === 'Enter' || event.key === 'Tab') {
+      event.preventDefault();
+      insertMention(mentionSuggestions[activeMention]);
+    }
   };
 
   const save = async () => {
@@ -406,18 +484,20 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
   const thumbnailFailed = Boolean(config.thumbnail && failedImages.thumbnail === config.thumbnail);
   const bannerFailed = Boolean(config.bannerUrl && failedImages.bannerUrl === config.bannerUrl);
   const footerIconFailed = Boolean(config.footerIcon && failedImages.footerIcon === config.footerIcon);
-  const previewAuthorIcon = authorIconFailed
+  const previewAuthorIcon = imageSources.authorIcon === 'none' ? null : authorIconFailed
     ? (config.fallbackServerIcon ? guild.icon || '/kael-avatar.webp' : '/kael-avatar.webp')
     : config.authorIcon === '{membro.avatar}' ? previewAvatar : (secureWebUrl(config.authorIcon) || '/kael-avatar.webp');
-  const previewThumbnail = thumbnailFailed
+  const previewThumbnail = imageSources.thumbnail === 'none' ? null : thumbnailFailed
     ? (config.fallbackServerIcon ? guild.icon : null)
     : config.thumbnail === '{membro.avatar}' ? previewAvatar : (secureWebUrl(config.thumbnail) || (config.fallbackServerIcon ? guild.icon : null));
-  const configuredBanner = secureWebUrl(config.bannerUrl) || guild.banner || (config.fallbackServerIcon ? guild.icon : null);
+  const configuredBanner = imageSources.bannerUrl === 'none'
+    ? null
+    : config.bannerUrl === '{membro.avatar}' ? previewAvatar : secureWebUrl(config.bannerUrl) || guild.banner || (config.fallbackServerIcon ? guild.icon : null);
   const previewBanner = bannerFailed ? (config.fallbackServerIcon ? guild.banner || guild.icon : null) : configuredBanner;
   const renderedTitle = replaceVariables(config.title, guild, profile, selectedChannel);
-  const renderedMessage = replaceVariables(config.message, guild, profile, selectedChannel);
+  const renderedMessage = Object.entries(mentionLabels).reduce((text, [mention, label]) => text.replaceAll(mention, label), replaceVariables(config.message, guild, profile, selectedChannel));
   const renderedFooter = replaceVariables(config.footer, guild, profile, selectedChannel);
-  const previewFooterIcon = footerIconFailed
+  const previewFooterIcon = imageSources.footerIcon === 'none' ? null : footerIconFailed
     ? (config.fallbackServerIcon ? guild.icon : null)
     : config.footerIcon === '{membro.avatar}' ? previewAvatar : secureWebUrl(config.footerIcon);
 
@@ -458,7 +538,7 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
             {tab === 'message' && <div className="welcome-tab-panel">
               <h2><KaelMessage /> Conteúdo</h2>
               <label>Título<span className="welcome-counter">{config.title.length} / 256</span><input maxLength={256} value={config.title} onChange={(event) => update('title', event.target.value)} /></label>
-              <label>Mensagem<span className="welcome-counter">{config.message.length} / 2000</span><textarea ref={messageRef} maxLength={2000} value={config.message} onChange={(event) => update('message', event.target.value)} /></label>
+              <label>Mensagem<span className="welcome-counter">{config.message.length} / 2000</span><span className="welcome-message-input"><textarea ref={messageRef} maxLength={2000} value={config.message} aria-controls={mentionMenu ? 'welcome-mention-list' : undefined} onChange={changeMessage} onKeyDown={handleMentionKeys} onClick={(event) => detectMention(event.currentTarget.value, event.currentTarget.selectionStart)} />{mentionMenu && <span className="welcome-mention-menu" id="welcome-mention-list"><small>{mentionMenu.trigger === '@' ? 'MEMBROS E CARGOS' : 'CANAIS DO SERVIDOR'}</small>{mentionLoading ? <em>Buscando...</em> : mentionSuggestions.length ? mentionSuggestions.map((suggestion, index) => <button type="button" className={index === activeMention ? 'active' : ''} key={`${suggestion.type}-${suggestion.id}`} onMouseDown={(event) => event.preventDefault()} onClick={() => insertMention(suggestion)}>{suggestion.avatar ? <Image src={suggestion.avatar} alt="" width={30} height={30} unoptimized /> : <i>{suggestion.type === 'channel' ? '#' : '@'}</i>}<span><strong>{suggestion.name}</strong><small>{suggestion.detail}</small></span></button>) : <em>Nenhum resultado encontrado.</em>}</span>}</span><small className="welcome-mention-hint">Digite <strong>@</strong> para mencionar membros ou cargos e <strong>#</strong> para escolher um canal.</small></label>
               <div className="welcome-variables"><span>Inserir variável</span><div>{variables.map(({ token, description }) => <button type="button" key={token} title={description} aria-label={`${token}: ${description}`} onClick={() => insertVariable(token)}><strong>{token}</strong><small>{description}</small></button>)}</div></div>
               <div className="welcome-template"><span><strong>Modelo inicial</strong><small>Uma mensagem pronta para você personalizar.</small></span><button type="button" onClick={() => { update('title', defaultConfig.title); update('message', initialMessage); }}>Restaurar modelo</button></div>
             </div>}
@@ -484,7 +564,7 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
           <aside className="welcome-preview" aria-label="Prévia em tempo real">
             <h2>Prévia em tempo real</h2>
             <div className="welcome-component-preview" style={{ '--preview-accent': config.accentColor } as CSSProperties}>
-              <div className="welcome-preview-author"><Image src={previewAuthorIcon} alt="" width={36} height={36} unoptimized draggable={false} onError={() => markImageFailed('authorIcon', config.authorIcon)} /><span>{config.authorName || 'Kael'}</span></div>
+              <div className="welcome-preview-author">{previewAuthorIcon && <Image src={previewAuthorIcon} alt="" width={36} height={36} unoptimized draggable={false} onError={() => markImageFailed('authorIcon', config.authorIcon)} />}<span>{config.authorName || 'Kael'}</span></div>
               <div className="welcome-preview-copy"><span><strong>{renderedTitle}</strong><p>{renderedMessage}</p></span>{previewThumbnail && <Image src={previewThumbnail} alt="" width={58} height={58} unoptimized draggable={false} onError={() => markImageFailed('thumbnail', config.thumbnail)} />}</div>
               {previewBanner && <span className="welcome-preview-banner"><Image src={previewBanner} alt="" fill unoptimized draggable={false} onError={() => markImageFailed('bannerUrl', config.bannerUrl || previewBanner)} /></span>}
               {renderedFooter && <small className="welcome-preview-footer">{previewFooterIcon && <Image src={previewFooterIcon} alt="" width={20} height={20} unoptimized draggable={false} onError={() => markImageFailed('footerIcon', config.footerIcon)} />}{renderedFooter}</small>}
