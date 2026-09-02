@@ -1,7 +1,7 @@
 'use client';
+/* oxlint-disable next/no-html-link-for-pages -- Vinext client navigation is unreliable for these authenticated routes. */
 
 import Image from 'next/image';
-import Link from 'next/link';
 import {
   KaelArrowLeft,
   KaelCheck,
@@ -478,7 +478,7 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
 
   if (state === 'loading') return <div className="guild-access-loading"><span /><p>Carregando as configurações de boas-vindas...</p></div>;
   if (state === 'guest') return <div className="panel-empty guild-access-state"><span className="panel-empty-icon"><KaelEnter /></span><p className="panel-state-label">SESSÃO EXPIRADA</p><h2>Entre com o Discord novamente</h2><p>Precisamos confirmar sua identidade antes de abrir as configurações.</p><button className="panel-primary-link" type="button" onClick={() => location.assign('/api/auth/discord')}>Entrar com Discord <KaelEnter /></button></div>;
-  if (state === 'denied') return <div className="panel-empty guild-access-state"><span className="panel-empty-icon"><KaelShield /></span><p className="panel-state-label">ACESSO PROTEGIDO</p><h2>Você não pode configurar este servidor.</h2><p>O Kael confirmou suas permissões novamente e bloqueou esta página.</p><Link className="panel-secondary-link" href="/servidores"><KaelArrowLeft /> Voltar aos servidores</Link></div>;
+  if (state === 'denied') return <div className="panel-empty guild-access-state"><span className="panel-empty-icon"><KaelShield /></span><p className="panel-state-label">ACESSO PROTEGIDO</p><h2>Você não pode configurar este servidor.</h2><p>O Kael confirmou suas permissões novamente e bloqueou esta página.</p><a className="panel-secondary-link" href="/servidores"><KaelArrowLeft /> Voltar aos servidores</a></div>;
   if (state === 'error' || !guild) return <div className="panel-empty guild-access-state"><span className="panel-empty-icon"><KaelRefresh /></span><p className="panel-state-label">CONEXÃO INDISPONÍVEL</p><h2>Não foi possível abrir as boas-vindas.</h2><p>Tente novamente em alguns instantes. Nenhuma configuração foi alterada.</p><button className="panel-secondary-link" type="button" onClick={() => location.reload()}>Tentar novamente <KaelRefresh /></button></div>;
 
   const previewAvatar = profile?.avatarUrl || guild.icon || '/kael-avatar.webp';
@@ -506,7 +506,8 @@ export function WelcomeSettings({ guildId }: { guildId: string }) {
   return (
     <div className="guild-overview welcome-workspace">
       <aside className="guild-overview-nav" aria-label="Seções do servidor">
-        <Link className="guild-overview-back" href="/servidores"><KaelArrowLeft /> Servidores</Link>
+        {/* oxlint-disable-next-line next/no-html-link-for-pages -- Full reload avoids the Vinext client-navigation failure. */}
+        <a className="guild-overview-back" href="/servidores"><KaelArrowLeft /> Servidores</a>
         {/* oxlint-disable-next-line next/no-html-link-for-pages -- Full reload preserves the hardened Discord session check. */}
         <a className="guild-overview-nav-item" href={`/servidores/${guildId}`}><KaelGrid /> Visão geral</a>
         <span className="guild-overview-nav-item active"><KaelWelcome /> Boas-vindas</span>

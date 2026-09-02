@@ -1,7 +1,7 @@
 'use client';
+/* oxlint-disable next/no-html-link-for-pages -- Vinext client navigation is unreliable for these authenticated routes. */
 
 import Image from 'next/image';
-import Link from 'next/link';
 import { KaelArrowLeft, KaelConstruct, KaelEnter, KaelGrid, KaelMembers, KaelRefresh, KaelShield, KaelWelcome } from '@/components/kael-icons';
 import { useEffect, useState } from 'react';
 
@@ -33,19 +33,20 @@ export function GuildUnderConstruction({ guildId }: { guildId: string }) {
   if (state === 'denied') {
     return (
       <div className="guild-denied">
-        <div className="guild-denied-copy"><span className="panel-empty-icon"><KaelShield /></span><p className="panel-state-label">ACESSO PROTEGIDO</p><h2>Essa comunidade não está disponível para sua conta.</h2><p>O Kael confirmou novamente suas permissões no Discord. Escolha um servidor que você possa gerenciar e onde o bot esteja presente.</p><Link className="panel-secondary-link" href="/servidores"><KaelArrowLeft /> Voltar aos servidores</Link></div>
+        <div className="guild-denied-copy"><span className="panel-empty-icon"><KaelShield /></span><p className="panel-state-label">ACESSO PROTEGIDO</p><h2>Essa comunidade não está disponível para sua conta.</h2><p>O Kael confirmou novamente suas permissões no Discord. Escolha um servidor que você possa gerenciar e onde o bot esteja presente.</p><a className="panel-secondary-link" href="/servidores"><KaelArrowLeft /> Voltar aos servidores</a></div>
         <div className="guild-denied-art"><Image src="/kael-confused.webp" alt="Kael com expressão de dúvida" width={520} height={520} unoptimized draggable={false} /></div>
       </div>
     );
   }
   if (state === 'error') {
-    return <div className="panel-empty guild-access-state"><span className="panel-empty-icon"><KaelRefresh /></span><p className="panel-state-label">VERIFICAÇÃO INDISPONÍVEL</p><h2>Não conseguimos confirmar seu acesso.</h2><p>Por segurança, o painel não será aberto até o Discord e o Kael responderem.</p><Link className="panel-secondary-link" href={`/servidores/${guildId}`}><KaelRefresh /> Tentar novamente</Link></div>;
+    return <div className="panel-empty guild-access-state"><span className="panel-empty-icon"><KaelRefresh /></span><p className="panel-state-label">VERIFICAÇÃO INDISPONÍVEL</p><h2>Não conseguimos confirmar seu acesso.</h2><p>Por segurança, o painel não será aberto até o Discord e o Kael responderem.</p><a className="panel-secondary-link" href={`/servidores/${guildId}`}><KaelRefresh /> Tentar novamente</a></div>;
   }
 
   return (
     <div className="guild-overview">
       <aside className="guild-overview-nav" aria-label="Seções do servidor">
-        <Link className="guild-overview-back" href="/servidores"><KaelArrowLeft /> Servidores</Link>
+        {/* oxlint-disable-next-line next/no-html-link-for-pages -- Full reload avoids the Vinext client-navigation failure. */}
+        <a className="guild-overview-back" href="/servidores"><KaelArrowLeft /> Servidores</a>
         <span className="guild-overview-nav-item active"><KaelGrid /> Visão geral</span>
         <a className="guild-overview-nav-item" href={`/servidores/${guildId}/boas-vindas`}><KaelWelcome /> Boas-vindas</a>
       </aside>
