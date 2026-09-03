@@ -4,6 +4,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from kael.emojis import KAEL_STATUS, KAEL_CLOCK
 from kael.ui import information_card
 
 
@@ -18,9 +19,9 @@ class StatusCog(commands.Cog):
 
         latency = round(self.bot.latency * 1000)
         view = information_card(
-            "Kael está online",
+            f"{KAEL_STATUS} Kael está online",
             "Pronto para cuidar da sua comunidade.\n\n"
-            f"**Latência:** {latency} ms\n"
+            f"{KAEL_CLOCK} **Latência:** {latency} ms\n"
             "Kael • Community Hub",
         )
         await interaction.response.send_message(view=view, ephemeral=True)

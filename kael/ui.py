@@ -9,8 +9,8 @@ KAEL_ACCENT = 0x6D5CFF
 def information_card(title: str, body: str, *, accent_color: int = KAEL_ACCENT) -> discord.ui.LayoutView:
     """Cria uma mensagem Components v2 no padrão visual do Kael.
 
-    Este projeto não usa embeds em mensagens novas. Os emojis da marca entram
-    apenas depois de serem criados e registrados no Discord.
+    Os emojis personalizados da marca podem ser passados diretamente no
+    ``title`` ou no ``body`` usando o formato ``<:nome:id>``.
     """
 
     view = discord.ui.LayoutView(timeout=None)

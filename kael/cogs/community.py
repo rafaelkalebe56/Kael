@@ -4,6 +4,20 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from kael.emojis import (
+    KAEL_HELP,
+    KAEL_INFO,
+    KAEL_LINK,
+    KAEL_MEMBER,
+    KAEL_PANEL,
+    KAEL_ROLES,
+    KAEL_SERVER,
+    KAEL_SHIELD,
+    KAEL_CALENDAR,
+    KAEL_CLOCK,
+    KAEL_AVATAR,
+    KAEL_SUCCESS,
+)
 from kael.ui import KAEL_ACCENT
 
 
@@ -30,7 +44,7 @@ def _role_names(roles: list[discord.Role]) -> str:
 
 class ShowHelpButton(discord.ui.Button):
     def __init__(self) -> None:
-        super().__init__(style=discord.ButtonStyle.secondary, label="Mostrar ajuda")
+        super().__init__(style=discord.ButtonStyle.secondary, label="Mostrar ajuda", emoji=KAEL_HELP)
 
     async def callback(self, interaction: discord.Interaction) -> None:
         await interaction.response.send_message(view=help_view(), ephemeral=True, allowed_mentions=NO_MENTIONS)
@@ -51,7 +65,7 @@ class HelpCategorySelect(discord.ui.Select):
 
 class ShowRolesButton(discord.ui.Button):
     def __init__(self) -> None:
-        super().__init__(style=discord.ButtonStyle.secondary, label="Ver todos os cargos")
+        super().__init__(style=discord.ButtonStyle.secondary, label="Ver todos os cargos", emoji=KAEL_ROLES)
 
     async def callback(self, interaction: discord.Interaction) -> None:
         if interaction.guild is None:
@@ -79,13 +93,14 @@ def mention_view(display_name: str) -> discord.ui.LayoutView:
     view.add_item(
         discord.ui.Container(
             discord.ui.TextDisplay(
-                f"## Olá, {_safe(display_name)}.\n"
+                f"## {KAEL_AVATAR} Olá, {_safe(display_name)}.\n"
                 "Você me chamou? Posso abrir meus comandos ou levar você ao painel."
             ),
             discord.ui.ActionRow(
                 discord.ui.Button(
                     style=discord.ButtonStyle.link,
                     label="Abrir painel",
+                    emoji=KAEL_PANEL,
                     url=f"{PANEL_URL}/servidores",
                 ),
                 ShowHelpButton(),
@@ -99,11 +114,11 @@ def mention_view(display_name: str) -> discord.ui.LayoutView:
 def help_view(category: str = "all") -> discord.ui.LayoutView:
     commands_by_category = {
         "community": [
-            "`/serverinfo` — Informações completas desta comunidade.",
-            "`/status` — Confirma a conexão e a latência do Kael.",
-            "`@Kael` — Abre a ajuda rápida ao mencionar o bot.",
+            f"{KAEL_SERVER} `/serverinfo` — Informações completas desta comunidade.",
+            f"{KAEL_SUCCESS} `/status` — Confirma a conexão e a latência do Kael.",
+            f"{KAEL_AVATAR} `@Kael` — Abre a ajuda rápida ao mencionar o bot.",
         ],
-        "profile": ["`/perfil [membro]` — Mostra seu perfil ou o de outra pessoa."],
+        "profile": [f"{KAEL_MEMBER} `/perfil [membro]` — Mostra seu perfil ou o de outra pessoa."],
     }
     selected = (
         commands_by_category[category]
@@ -113,12 +128,12 @@ def help_view(category: str = "all") -> discord.ui.LayoutView:
     view = discord.ui.LayoutView(timeout=300)
     view.add_item(
         discord.ui.Container(
-            discord.ui.TextDisplay("## Central de ajuda\nEscolha uma categoria para encontrar o comando certo."),
+            discord.ui.TextDisplay(f"## {KAEL_HELP} Central de ajuda\nEscolha uma categoria para encontrar o comando certo."),
             discord.ui.Separator(),
             discord.ui.TextDisplay("\n".join(selected)),
             discord.ui.ActionRow(HelpCategorySelect(category)),
             discord.ui.ActionRow(
-                discord.ui.Button(style=discord.ButtonStyle.link, label="Abrir site", url=f"{PANEL_URL}/inicio")
+                discord.ui.Button(style=discord.ButtonStyle.link, label="Abrir site", emoji=KAEL_LINK, url=f"{PANEL_URL}/inicio")
             ),
             accent_color=KAEL_ACCENT,
         )
@@ -133,7 +148,7 @@ def roles_view(guild: discord.Guild, page: int = 0) -> discord.ui.LayoutView:
     view.add_item(
         discord.ui.Container(
             discord.ui.TextDisplay(
-                f"## Cargos de {_safe(guild.name)}\n"
+                f"## {KAEL_ROLES} Cargos de {_safe(guild.name)}\n"
                 f"{_role_names(pages[page])}\n\n"
                 f"Página {page + 1} de {len(pages)} · {len(guild.roles)} cargos"
             ),
@@ -154,15 +169,15 @@ def serverinfo_view(guild: discord.Guild) -> discord.ui.LayoutView:
     visible_roles = roles if len(roles) <= 20 else roles[:20]
     description = guild.description or "Uma comunidade cuidada com o Kael."
     details = (
-        f"## {_safe(guild.name)}\n{_safe(description)}\n\n"
-        f"**Membros**\n{member_count}\n\n"
-        f"**Canais**\n{len(guild.channels)} ({len(guild.text_channels)} de texto · {len(guild.voice_channels)} de voz)\n\n"
-        f"**Cargos**\n{len(guild.roles)}\n\n"
-        f"**Impulsos**\n{guild.premium_subscription_count or 0}\n\n"
-        f"**Dono do servidor**\n{_safe(owner)}\n\n"
-        f"**Emojis disponíveis**\n{len(guild.emojis)}\n\n"
-        f"**Servidor criado em**\n{_date(guild.created_at)}\n\n"
-        f"**ID**\n`{guild.id}`"
+        f"## {KAEL_SERVER} {_safe(guild.name)}\n{_safe(description)}\n\n"
+        f"{KAEL_MEMBER} **Membros**\n{member_count}\n\n"
+        f"{KAEL_INFO} **Canais**\n{len(guild.channels)} ({len(guild.text_channels)} de texto · {len(guild.voice_channels)} de voz)\n\n"
+        f"{KAEL_ROLES} **Cargos**\n{len(guild.roles)}\n\n"
+        f"{KAEL_SUCCESS} **Impulsos**\n{guild.premium_subscription_count or 0}\n\n"
+        f"{KAEL_SHIELD} **Dono do servidor**\n{_safe(owner)}\n\n"
+        f"{KAEL_AVATAR} **Emojis disponíveis**\n{len(guild.emojis)}\n\n"
+        f"{KAEL_CALENDAR} **Servidor criado em**\n{_date(guild.created_at)}\n\n"
+        f"{KAEL_CLOCK} **ID**\n`{guild.id}`"
     )
     media_items = []
     if guild.banner:
@@ -178,7 +193,7 @@ def serverinfo_view(guild: discord.Guild) -> discord.ui.LayoutView:
             discord.ui.TextDisplay(details),
             discord.ui.Separator(),
             discord.ui.TextDisplay(
-                f"**Todos os cargos**\n{_role_names(visible_roles)}"
+                f"{KAEL_ROLES} **Todos os cargos**\n{_role_names(visible_roles)}"
                 + (f"\n\nMais {len(roles) - len(visible_roles)} cargos disponíveis no botão abaixo." if len(roles) > 20 else "")
             ),
         ]
@@ -187,6 +202,7 @@ def serverinfo_view(guild: discord.Guild) -> discord.ui.LayoutView:
         discord.ui.Button(
             style=discord.ButtonStyle.link,
             label="Abrir painel",
+            emoji=KAEL_PANEL,
             url=f"{PANEL_URL}/servidores/{guild.id}",
         )
     ]
@@ -203,13 +219,13 @@ def profile_view(member: discord.Member) -> discord.ui.LayoutView:
     roles = list(reversed(member.roles[1:]))
     highest_role = member.top_role.name if len(member.roles) > 1 else "Nenhum cargo"
     body = (
-        f"## {_safe(member.display_name)}\n"
+        f"## {KAEL_MEMBER} {_safe(member.display_name)}\n"
         f"@{_safe(member.name)}\n\n"
-        f"**Conta criada em**\n{_date(member.created_at)}\n\n"
-        f"**Entrou no servidor**\n{_date(member.joined_at)}\n\n"
-        f"**Maior cargo**\n{_safe(highest_role)}\n\n"
-        f"**Cargos**\n{_role_names(roles)}\n\n"
-        f"**ID**\n`{member.id}`"
+        f"{KAEL_CALENDAR} **Conta criada em**\n{_date(member.created_at)}\n\n"
+        f"{KAEL_CLOCK} **Entrou no servidor**\n{_date(member.joined_at)}\n\n"
+        f"{KAEL_SHIELD} **Maior cargo**\n{_safe(highest_role)}\n\n"
+        f"{KAEL_ROLES} **Cargos**\n{_role_names(roles)}\n\n"
+        f"{KAEL_INFO} **ID**\n`{member.id}`"
     )
     view = discord.ui.LayoutView(timeout=300)
     view.add_item(
@@ -222,6 +238,7 @@ def profile_view(member: discord.Member) -> discord.ui.LayoutView:
                 discord.ui.Button(
                     style=discord.ButtonStyle.link,
                     label="Ver avatar",
+                    emoji=KAEL_LINK,
                     url=str(member.display_avatar.url),
                 )
             ),
